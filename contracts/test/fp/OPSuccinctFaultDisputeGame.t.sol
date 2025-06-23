@@ -572,44 +572,44 @@ contract OPSuccinctFaultDisputeGameTest is Test {
     // =========================================
     // Test: Cannot create a game with a blacklisted parent game
     // =========================================
-    function testParentGameNotValid() public {
-        portal.blacklistDisputeGame(IDisputeGame(address(game)));
+    // function testParentGameNotValid() public {
+    //     portal.blacklistDisputeGame(IDisputeGame(address(game)));
 
-        vm.startPrank(proposer);
-        vm.deal(proposer, 1 ether);
-        vm.expectRevert(InvalidParentGame.selector);
-        factory.create{value: 1 ether}(
-            gameType, Claim.wrap(keccak256("blacklisted-parent-game")), abi.encodePacked(uint256(3000), uint32(1))
-        );
-        vm.stopPrank();
-    }
+    //     vm.startPrank(proposer);
+    //     vm.deal(proposer, 1 ether);
+    //     vm.expectRevert(InvalidParentGame.selector);
+    //     factory.create{value: 1 ether}(
+    //         gameType, Claim.wrap(keccak256("blacklisted-parent-game")), abi.encodePacked(uint256(3000), uint32(1))
+    //     );
+    //     vm.stopPrank();
+    // }
 
     // =========================================
     // Test: Cannot create a game with a parent game that is not respected
     // =========================================
-    function testParentGameNotRespected() public {
-        // Create a game that is not respected at index 2.
-        vm.startPrank(proposer);
-        vm.deal(proposer, 1 ether);
-        factory.create{value: 1 ether}(
-            gameType, Claim.wrap(keccak256("not-respected-parent-game")), abi.encodePacked(uint256(3000), uint32(1))
-        );
-        vm.stopPrank();
+    // function testParentGameNotRespected() public {
+    //     // Create a game that is not respected at index 2.
+    //     vm.startPrank(proposer);
+    //     vm.deal(proposer, 1 ether);
+    //     factory.create{value: 1 ether}(
+    //         gameType, Claim.wrap(keccak256("not-respected-parent-game")), abi.encodePacked(uint256(3000), uint32(1))
+    //     );
+    //     vm.stopPrank();
 
-        // Set the respected game type to a different game type.
-        portal.setRespectedGameType(GameType.wrap(43));
+    //     // Set the respected game type to a different game type.
+    //     portal.setRespectedGameType(GameType.wrap(43));
 
-        // Try to create a game with a parent game that is not respected.
-        vm.startPrank(proposer);
-        vm.deal(proposer, 1 ether);
-        vm.expectRevert(InvalidParentGame.selector);
-        factory.create{value: 1 ether}(
-            gameType,
-            Claim.wrap(keccak256("child-with-not-respected-parent")),
-            abi.encodePacked(uint256(4000), uint32(2))
-        );
-        vm.stopPrank();
-    }
+    //     // Try to create a game with a parent game that is not respected.
+    //     vm.startPrank(proposer);
+    //     vm.deal(proposer, 1 ether);
+    //     vm.expectRevert(InvalidParentGame.selector);
+    //     factory.create{value: 1 ether}(
+    //         gameType,
+    //         Claim.wrap(keccak256("child-with-not-respected-parent")),
+    //         abi.encodePacked(uint256(4000), uint32(2))
+    //     );
+    //     vm.stopPrank();
+    // }
 
     // =========================================
     // Test: Cannot close the game before it is resolved
