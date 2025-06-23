@@ -24,6 +24,10 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Install a default CryptoProvider once per process to satisfy rustls >=0.23.
+    // We always use the aws-lc-rs backend that ships with rustls by default.
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+
     setup_logging();
 
     let args = Args::parse();

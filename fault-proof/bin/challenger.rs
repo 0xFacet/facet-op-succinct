@@ -254,6 +254,9 @@ async fn main() -> Result<()> {
     // Initialize the metrics gauges.
     ChallengerGauge::init_all();
 
+    // Install a default CryptoProvider (aws-lc-rs backend) once per process.
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+
     challenger.run().await.expect("Runs in an infinite loop");
 
     Ok(())
