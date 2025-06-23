@@ -115,20 +115,6 @@ contract MinimalDisputeGameFactory is ISemver, Ownable {
     function gameCount() external view returns (uint256 gameCount_) {
         return _disputeGameList.length;
     }
-
-    // /// @notice Returns the game data for a given UUID
-    // /// @param _uuid The UUID of the dispute game
-    // /// @return gameType_ The type of the dispute game
-    // /// @return timestamp_ The timestamp of the dispute game
-    // /// @return proxy_ The proxy address of the dispute game
-    // function games(
-    //     Hash _uuid
-    // ) external view returns (GameType gameType_, Timestamp timestamp_, IDisputeGame proxy_) {
-    //     GameId id = _disputeGames[_uuid];
-    //     address proxyAddr;
-    //     (gameType_, timestamp_, proxyAddr) = id.unpack();
-    //     proxy_ = IDisputeGame(proxyAddr);
-    // }
     
     /// @notice `games` queries an internal mapping that maps the hash of
     ///         `gameType ++ rootClaim ++ extraData` to the deployed `DisputeGame` clone.
@@ -167,45 +153,58 @@ contract MinimalDisputeGameFactory is ISemver, Ownable {
         proxy_ = IDisputeGame(proxyAddr);
     }
 
-    /// @notice Finds games matching specific criteria
-    /// @param _gameType The game type to search for
-    /// @param _start The index to start searching from
-    /// @param _n The maximum number of games to return
-    /// @return games_ An array of found games
+    /// @notice Finds the `_n` most recent `GameId`'s of type `_gameType` starting at `_start`. If there are less than
+    ///         `_n` games of type `_gameType` starting at `_start`, then the returned array will be shorter than `_n`.
+    /// @param _gameType The type of game to find.
+    /// @param _start The index to start the reverse search from.
+    /// @param _n The number of games to find.
     function findLatestGames(
         GameType _gameType,
         uint256 _start,
         uint256 _n
-    ) external view returns (GameSearchResult[] memory games_) {
-        uint256 gamesFound = 0;
-        uint256 listLen = _disputeGameList.length;
-        
-        if (_start >= listLen) return games_;
+    )
+        external
+        view
+        returns (GameSearchResult[] memory games_)
+    {
+        // If the `_start` index is greater than or equal to the game array length or `_n == 0`, return an empty array.
+        if (_start >= _disputeGameList.length || _n == 0) return games_;
 
-        // Allocate memory for the max possible results
-        games_ = new GameSearchResult[](_n);
-
-        // Search backwards from start position
-        for (uint256 i = _start; i < listLen && gamesFound < _n; i++) {
-            GameId id = _disputeGameList[listLen - i - 1];
-            (GameType gameType, Timestamp timestamp, address addr) = id.unpack();
-            IDisputeGame proxy = IDisputeGame(addr);
-            
-            if (gameType.raw() == _gameType.raw()) {
-                games_[gamesFound] = GameSearchResult({
-                    index: listLen - i - 1,
-                    metadata: id,
-                    timestamp: timestamp,
-                    rootClaim: proxy.rootClaim(),
-                    extraData: proxy.extraData()
-                });
-                gamesFound++;
-            }
+        // Allocate enough memory for the full array, but start the array's length at `0`. We may not use all of the
+        // memory allocated, but we don't know ahead of time the final size of the array.
+        assembly {
+            games_ := mload(0x40)
+            mstore(0x40, add(games_, add(0x20, shl(0x05, _n))))
         }
 
-        // Resize array to actual number of games found
-        assembly {
-            mstore(games_, gamesFound)
+        // Perform a reverse linear search for the `_n` most recent games of type `_gameType`.
+        for (uint256 i = _start; i >= 0 && i <= _start;) {
+            GameId id = _disputeGameList[i];
+            (GameType gameType, Timestamp timestamp, address proxy) = id.unpack();
+
+            if (gameType.raw() == _gameType.raw()) {
+                // Increase the size of the `games_` array by 1.
+                // SAFETY: We can safely lazily allocate memory here because we pre-allocated enough memory for the max
+                //         possible size of the array.
+                assembly {
+                    mstore(games_, add(mload(games_), 0x01))
+                }
+
+                bytes memory extraData = IDisputeGame(proxy).extraData();
+                Claim rootClaim = IDisputeGame(proxy).rootClaim();
+                games_[games_.length - 1] = GameSearchResult({
+                    index: i,
+                    metadata: id,
+                    timestamp: timestamp,
+                    rootClaim: rootClaim,
+                    extraData: extraData
+                });
+                if (games_.length >= _n) break;
+            }
+
+            unchecked {
+                i--;
+            }
         }
     }
     
