@@ -57,47 +57,38 @@ contract MinimalDisputeGameFactory is ISemver, Ownable {
     /// @param _gameType The type of the DisputeGame to create
     /// @param _rootClaim The root claim of the DisputeGame
     /// @param _extraData Any extra data to be passed to the DisputeGame
-    /// @return proxy The address of the created DisputeGame proxy
+    /// @return proxy_ The address of the created DisputeGame proxy
     function create(
         GameType _gameType,
         Claim _rootClaim,
         bytes calldata _extraData
-    ) external payable returns (IDisputeGame proxy) {
+    ) external payable returns (IDisputeGame proxy_) {
         // Get the implementation for the given game type
         IDisputeGame impl = gameImpls[_gameType];
+        
         if (address(impl) == address(0)) revert NoImplementation(_gameType);
 
         // Check that the bond is correct
         if (msg.value != initBonds[_gameType]) revert IncorrectBondAmount();
-
-        // Clone the implementation with immutable args
-        bytes memory data = abi.encodePacked(
-            msg.sender,
-            _rootClaim,
-            blockhash(block.number - 1),
-            _extraData
-        );
         
-        proxy = IDisputeGame(address(impl).clone(data));
-
-        // Compute the unique identifier for the dispute game
-        GameId id = LibGameId.pack(_gameType, Timestamp.wrap(uint64(block.timestamp)), address(proxy));
+        bytes32 parentHash = blockhash(block.number - 1);
         
-        // Compute a simple UUID from game parameters
-        Hash uuid = Hash.wrap(keccak256(abi.encode(_gameType, _rootClaim, _extraData)));
+        proxy_ = IDisputeGame(address(impl).clone(abi.encodePacked(msg.sender, _rootClaim, parentHash, _extraData)));
+        proxy_.initialize{ value: msg.value }();
 
-        // Check that the game doesn't already exist
-        (GameType existingType,,) = _disputeGames[uuid].unpack();
-        if (existingType.raw() != 0) revert GameAlreadyExists(uuid);
+        // Compute the unique identifier for the dispute game.
+        Hash uuid = getGameUUID(_gameType, _rootClaim, _extraData);
 
-        // Store the dispute game id in the mapping & list
+        // If a dispute game with the same UUID already exists, revert.
+        if (GameId.unwrap(_disputeGames[uuid]) != bytes32(0)) revert GameAlreadyExists(uuid);
+
+        // Pack the game ID.
+        GameId id = LibGameId.pack(_gameType, Timestamp.wrap(uint64(block.timestamp)), address(proxy_));
+
+        // Store the dispute game id in the mapping & emit the `DisputeGameCreated` event.
         _disputeGames[uuid] = id;
         _disputeGameList.push(id);
-
-        // Initialize the dispute game
-        proxy.initialize{value: msg.value}();
-
-        emit DisputeGameCreated(address(proxy), _gameType, _rootClaim);
+        emit DisputeGameCreated(address(proxy_), _gameType, _rootClaim);
     }
 
     /// @notice Sets the implementation for a game type
