@@ -531,7 +531,7 @@ contract MinimalFaultDisputeGame is Clone, ISemver {
         try ANCHOR_STATE_REGISTRY.setAnchorState(IDisputeGame(address(this))) {} catch {}
 
         // Check if the game is a proper game, which will determine the bond distribution mode.
-        bool properGame = ANCHOR_STATE_REGISTRY.isGameClaimValid(IDisputeGame(address(this)));
+        bool properGame = ANCHOR_STATE_REGISTRY.isGameProper(IDisputeGame(address(this)));
 
         // If the game is a proper game, the bonds should be distributed normally. Otherwise, go
         // into refund mode and distribute bonds back to their original depositors.
