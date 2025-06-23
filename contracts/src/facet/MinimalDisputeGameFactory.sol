@@ -74,7 +74,6 @@ contract MinimalDisputeGameFactory is ISemver, Ownable {
         bytes32 parentHash = blockhash(block.number - 1);
         
         proxy_ = IDisputeGame(address(impl).clone(abi.encodePacked(msg.sender, _rootClaim, parentHash, _extraData)));
-        proxy_.initialize{ value: msg.value }();
 
         // Compute the unique identifier for the dispute game.
         Hash uuid = getGameUUID(_gameType, _rootClaim, _extraData);
@@ -88,6 +87,11 @@ contract MinimalDisputeGameFactory is ISemver, Ownable {
         // Store the dispute game id in the mapping & emit the `DisputeGameCreated` event.
         _disputeGames[uuid] = id;
         _disputeGameList.push(id);
+
+        // Initialize the dispute game.
+        proxy_.initialize{ value: msg.value }();
+
+        // Emit the `DisputeGameCreated` event.
         emit DisputeGameCreated(address(proxy_), _gameType, _rootClaim);
     }
 
