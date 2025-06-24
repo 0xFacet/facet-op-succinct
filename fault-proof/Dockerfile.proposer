@@ -29,7 +29,7 @@ FROM rust-base AS builder
 COPY . .
 
 # Build the proposer binary
-RUN cargo build --release -p op-succinct-fp --bin challenger
+RUN cargo build --release -p op-succinct-fp --bin proposer
 # Runtime stage (minimal image)
 FROM ubuntu:24.04
 
