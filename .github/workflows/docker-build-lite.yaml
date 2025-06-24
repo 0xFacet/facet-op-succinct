@@ -38,7 +38,7 @@ jobs:
         id: meta-proposer
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}/lite-proposer
+          images: ghcr.io/0xfacet/facet-op-succinct/lite-proposer
           tags: |
             type=sha
             latest
@@ -101,7 +101,7 @@ jobs:
         id: meta-challenger
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}/lite-challenger
+          images: ghcr.io/0xfacet/facet-op-succinct/lite-challenger
           tags: |
             type=sha
             latest
