@@ -1,8 +1,8 @@
 build:
   docker:
-    proposer: fault-proof/Dockerfile.proposer   # => heroku-proposer:latest
-    challenger: fault-proof/Dockerfile.challenger  # => heroku-challenger:latest
+    proposer: Dockerfile.proposer
+    challenger: Dockerfile.challenger
 
 run:
-  proposer: proposer                # CMD inside proposer image
-  challenger: challenger            # CMD inside challenger image
+  proposer: proposer
+  challenger: challenger
