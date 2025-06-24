@@ -2,19 +2,11 @@ name: Build OP Succinct Lite Docker Images
 
 on:
   workflow_dispatch:
-  push:
 
 jobs:
   build-proposer:
     name: Build OP Succinct Lite Proposer
-    runs-on:
-      - runs-on
-      - cpu=16
-      - ram=64
-      - family=m7a+m7i-flex
-      - image=ubuntu22-full-x64
-      - run-id=${{ github.run_id }}
-      - disk=large
+    runs-on: ubuntu-latest-xl
     
     env:
       DOCKER_BUILDKIT: 1
@@ -45,7 +37,7 @@ jobs:
         id: meta-proposer
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}/lite-proposer
+          images: ghcr.io/0xfacet/facet-op-succinct/lite-proposer
           tags: |
             type=sha
             latest
@@ -63,96 +55,23 @@ jobs:
           context: .
           file: fault-proof/Dockerfile.proposer
           push: true
+          platforms: linux/amd64
+          provenance: false
           tags: ${{ steps.meta-proposer.outputs.tags }}
           labels: ${{ steps.meta-proposer.outputs.labels }}
           cache-from: |
             type=gha,scope=proposer
-            type=registry,ref=ghcr.io/${{ github.repository }}/lite-proposer:cache
+            type=registry,ref=ghcr.io/0xfacet/facet-op-succinct/lite-proposer:cache
           cache-to: |
             type=gha,mode=max,scope=proposer
-            type=registry,ref=ghcr.io/${{ github.repository }}/lite-proposer:cache,mode=max
+            type=registry,ref=ghcr.io/0xfacet/facet-op-succinct/lite-proposer:cache,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
-  build-proposer-celestia:
-    name: Build OP Succinct Lite Proposer Celestia
-    runs-on:
-      - runs-on
-      - cpu=16
-      - ram=64
-      - family=m7a+m7i-flex
-      - image=ubuntu22-full-x64
-      - run-id=${{ github.run_id }}
-      - disk=large
-      
-    env:
-      DOCKER_BUILDKIT: 1
-      BUILDKIT_PROGRESS: plain
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      
-      - name: Cache
-        uses: actions/cache@v3
-        id: cache
-        with:
-          path: |
-            cargo-git
-            cargo-registry
-            target
-          key: cache-proposer-celestia-${{ hashFiles('Dockerfile.proposer.celestia') }}
-          restore-keys: |
-            cache-proposer-celestia-
-
-      - name: Docker meta for proposer-celestia
-        id: meta-proposer-celestia
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}/lite-proposer-celestia
-          tags: |
-            type=sha
-            latest
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push proposer-celestia
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: fault-proof/Dockerfile.proposer.celestia
-          push: true
-          tags: ${{ steps.meta-proposer-celestia.outputs.tags }}
-          labels: ${{ steps.meta-proposer-celestia.outputs.labels }}
-          cache-from: |
-            type=gha,scope=proposer-celestia
-            type=registry,ref=ghcr.io/${{ github.repository }}/lite-proposer-celestia:cache
-          cache-to: |
-            type=gha,mode=max,scope=proposer-celestia
-            type=registry,ref=ghcr.io/${{ github.repository }}/lite-proposer-celestia:cache,mode=max
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
 
   build-challenger:
     name: Build OP Succinct Lite Challenger
-    runs-on:
-      - runs-on
-      - cpu=16
-      - ram=64
-      - family=m7a+m7i-flex
-      - image=ubuntu22-full-x64
-      - run-id=${{ github.run_id }}
-      - disk=large
+    runs-on: ubuntu-latest-l
       
     env:
       DOCKER_BUILDKIT: 1
@@ -183,7 +102,7 @@ jobs:
         id: meta-challenger
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}/lite-challenger
+          images: ghcr.io/0xfacet/facet-op-succinct/lite-challenger
           tags: |
             type=sha
             latest
@@ -201,13 +120,15 @@ jobs:
           context: .
           file: fault-proof/Dockerfile.challenger
           push: true
+          platforms: linux/amd64
+          provenance: false
           tags: ${{ steps.meta-challenger.outputs.tags }}
           labels: ${{ steps.meta-challenger.outputs.labels }}
           cache-from: |
             type=gha,scope=challenger
-            type=registry,ref=ghcr.io/${{ github.repository }}/lite-challenger:cache
+            type=registry,ref=ghcr.io/0xfacet/facet-op-succinct/lite-challenger:cache
           cache-to: |
             type=gha,mode=max,scope=challenger
-            type=registry,ref=ghcr.io/${{ github.repository }}/lite-challenger:cache,mode=max
+            type=registry,ref=ghcr.io/0xfacet/facet-op-succinct/lite-challenger:cache,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1

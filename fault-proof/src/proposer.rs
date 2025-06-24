@@ -158,7 +158,7 @@ where
                 .compressed()
                 .strategy(FulfillmentStrategy::Hosted)
                 .skip_simulation(true)
-                .cycle_limit(1_000_000_000_000)
+                .cycle_limit(19_000_000_000)
                 .run_async()
                 .await?
         };
@@ -239,28 +239,62 @@ where
         l2_block_number: U256,
         parent_game_index: u32,
     ) -> Result<Address> {
-        tracing::info!(
-            "Creating game at L2 block number: {:?}, with parent game index: {:?}",
-            l2_block_number,
-            parent_game_index
-        );
+        tracing::info!("=== Game Creation Parameters ===");
+        tracing::info!("Config values:");
+        tracing::info!("  - Game type: {:?}", self.config.game_type);
+        tracing::info!("  - Proposal interval: {:?} blocks", self.config.proposal_interval_in_blocks);
+        tracing::info!("  - Fast finality mode: {:?}", self.config.fast_finality_mode);
+        tracing::info!("  - Safe DB fallback: {:?}", self.config.safe_db_fallback);
+        tracing::info!("  - Mock mode: {:?}", self.config.mock_mode);
+        tracing::info!("  - Max games to check for defense: {:?}", self.config.max_games_to_check_for_defense);
+        tracing::info!("  - Max games to check for resolution: {:?}", self.config.max_games_to_check_for_resolution);
+        tracing::info!("  - Max games to check for bond claiming: {:?}", self.config.max_games_to_check_for_bond_claiming);
+        tracing::info!("  - Fetch interval: {:?} seconds", self.config.fetch_interval);
+        
+        tracing::info!("Game creation parameters:");
+        tracing::info!("  - L2 block number: {:?}", l2_block_number);
+        tracing::info!("  - Parent game index: {:?}", parent_game_index);
+        tracing::info!("  - Prover address: {:?}", self.prover_address);
+        tracing::info!("  - Factory address: {:?}", self.factory.address());
+        tracing::info!("  - Init bond: {:?}", self.init_bond);
 
         let extra_data = <(U256, u32)>::abi_encode_packed(&(l2_block_number, parent_game_index));
+        tracing::info!("Encoded parameters:");
+        tracing::info!("  - Extra data (encoded): 0x{}", hex::encode(&extra_data));
+        tracing::info!("  - Extra data decoded: (l2_block_number: {:?}, parent_game_index: {:?})", l2_block_number, parent_game_index);
+
+        let output_root = self.l2_provider.compute_output_root_at_block(l2_block_number).await?;
+        tracing::info!("Output root: 0x{}", hex::encode(output_root));
 
         let transaction_request = self
             .factory
             .create(
                 self.config.game_type,
-                self.l2_provider.compute_output_root_at_block(l2_block_number).await?,
+                output_root,
                 extra_data.into(),
             )
             .value(self.init_bond)
             .into_transaction_request();
 
+        tracing::info!("Transaction details:");
+        tracing::info!("  - From address: {:?}", self.signer.address());
+        tracing::info!("  - To address: {:?}", self.factory.address());
+        tracing::info!("  - Max fee per gas: {:?}", transaction_request.max_fee_per_gas);
+        tracing::info!("  - Max priority fee per gas: {:?}", transaction_request.max_priority_fee_per_gas);
+        tracing::info!("  - Nonce: {:?}", transaction_request.nonce);
+        tracing::info!("  - Chain ID: {:?}", transaction_request.chain_id);
+        tracing::info!("  - Value (init bond): {:?}", transaction_request.value);
+        tracing::info!("=== End Game Creation Parameters ===");
+
         let receipt = self
             .signer
             .send_transaction_request(self.config.l1_rpc.clone(), transaction_request)
             .await?;
+
+        tracing::info!("Transaction receipt:");
+        tracing::info!("  - Transaction hash: {:?}", receipt.transaction_hash);
+        tracing::info!("  - Block number: {:?}", receipt.block_number);
+        tracing::info!("  - Gas used: {:?}", receipt.gas_used);
 
         let game_address = receipt
             .inner
@@ -299,6 +333,8 @@ where
         // Get the latest valid proposal.
         let latest_valid_proposal =
             self.factory.get_latest_valid_proposal(self.l2_provider.clone()).await?;
+        
+        tracing::info!("Latest valid proposal: {:?}", latest_valid_proposal);
 
         // Determine next block number and parent game index.
         //
@@ -312,15 +348,26 @@ where
         //    - Parent = u32::MAX (special value indicating no parent).
         let (latest_proposed_block_number, next_l2_block_number_for_proposal, parent_game_index) =
             match latest_valid_proposal {
-                Some((latest_block, latest_game_idx)) => (
-                    latest_block,
-                    latest_block + U256::from(self.config.proposal_interval_in_blocks),
-                    latest_game_idx.to::<u32>(),
-                ),
+                Some((latest_block, latest_game_idx)) => {
+                    tracing::info!(
+                        "Found existing valid proposal - Latest block: {:?}, Game index: {:?}",
+                        latest_block,
+                        latest_game_idx
+                    );
+                    (
+                        latest_block,
+                        latest_block + U256::from(self.config.proposal_interval_in_blocks),
+                        latest_game_idx.to::<u32>(),
+                    )
+                }
                 None => {
                     let anchor_l2_block_number =
                         self.factory.get_anchor_l2_block_number(self.config.game_type).await?;
-                    tracing::info!("Anchor L2 block number: {:?}", anchor_l2_block_number);
+                    tracing::info!(
+                        "No valid proposal found - Using anchor block: {:?}, Proposal interval: {:?}",
+                        anchor_l2_block_number,
+                        self.config.proposal_interval_in_blocks
+                    );
                     (
                         anchor_l2_block_number,
                         anchor_l2_block_number
@@ -331,27 +378,57 @@ where
                 }
             };
 
+        tracing::info!(
+            "Calculated values - Latest proposed block: {:?}, Next block for proposal: {:?}, Parent game index: {:?}",
+            latest_proposed_block_number,
+            next_l2_block_number_for_proposal,
+            parent_game_index
+        );
+
         let finalized_l2_head_block_number = self
             .host
             .get_finalized_l2_block_number(&self.fetcher, latest_proposed_block_number.to::<u64>())
             .await?;
 
+        tracing::info!(
+            "Finalized L2 head block number: {:?}",
+            finalized_l2_head_block_number
+        );
+
         // There's always a new game to propose, as the chain is always moving forward from the
         // genesis block set for the game type. Only create a new game if the finalized L2
         // head block number is greater than the next L2 block number for proposal.
         if let Some(finalized_block) = finalized_l2_head_block_number {
+            tracing::info!(
+                "Comparing finalized block ({:?}) with next proposal block ({:?})",
+                finalized_block,
+                next_l2_block_number_for_proposal
+            );
+            
             if U256::from(finalized_block) > next_l2_block_number_for_proposal {
+                tracing::info!(
+                    "Creating new game - Finalized block ({:?}) is ahead of next proposal block ({:?})",
+                    finalized_block,
+                    next_l2_block_number_for_proposal
+                );
                 let game_address =
                     self.create_game(next_l2_block_number_for_proposal, parent_game_index).await?;
 
                 Ok(Some(game_address))
             } else {
-                tracing::info!("No new game to propose since proposal interval has not elapsed");
+                tracing::info!(
+                    "Skipping game creation - Finalized block ({:?}) is not ahead of next proposal block ({:?})",
+                    finalized_block,
+                    next_l2_block_number_for_proposal
+                );
 
                 Ok(None)
             }
         } else {
-            tracing::info!("No new finalized block number found since last proposed block");
+            tracing::info!(
+                "No finalized block number found since last proposed block ({:?})",
+                latest_proposed_block_number
+            );
             Ok(None)
         }
     }

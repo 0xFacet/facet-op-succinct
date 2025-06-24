@@ -1,0 +1,8 @@
+build:
+  docker:
+    proposer: Dockerfile.proposer
+    challenger: Dockerfile.challenger
+
+run:
+  proposer: proposer
+  challenger: challenger
