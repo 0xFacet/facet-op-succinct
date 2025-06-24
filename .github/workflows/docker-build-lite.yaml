@@ -2,7 +2,6 @@ name: Build OP Succinct Lite Docker Images
 
 on:
   workflow_dispatch:
-  push:
 
 jobs:
   build-proposer:
@@ -60,10 +59,10 @@ jobs:
           labels: ${{ steps.meta-proposer.outputs.labels }}
           cache-from: |
             type=gha,scope=proposer
-            type=registry,ref=ghcr.io/${{ github.repository }}/lite-proposer:cache
+            type=registry,ref=ghcr.io/0xfacet/facet-op-succinct/lite-proposer:cache
           cache-to: |
             type=gha,mode=max,scope=proposer
-            type=registry,ref=ghcr.io/${{ github.repository }}/lite-proposer:cache,mode=max
+            type=registry,ref=ghcr.io/0xfacet/facet-op-succinct/lite-proposer:cache,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
@@ -123,9 +122,9 @@ jobs:
           labels: ${{ steps.meta-challenger.outputs.labels }}
           cache-from: |
             type=gha,scope=challenger
-            type=registry,ref=ghcr.io/${{ github.repository }}/lite-challenger:cache
+            type=registry,ref=ghcr.io/0xfacet/facet-op-succinct/lite-challenger:cache
           cache-to: |
             type=gha,mode=max,scope=challenger
-            type=registry,ref=ghcr.io/${{ github.repository }}/lite-challenger:cache,mode=max
+            type=registry,ref=ghcr.io/0xfacet/facet-op-succinct/lite-challenger:cache,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
