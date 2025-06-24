@@ -6,7 +6,7 @@ on:
 jobs:
   build-proposer:
     name: Build OP Succinct Lite Proposer
-    runs-on: ubuntu-latest-l
+    runs-on: ubuntu-latest-xl
     
     env:
       DOCKER_BUILDKIT: 1
@@ -55,6 +55,8 @@ jobs:
           context: .
           file: fault-proof/Dockerfile.proposer
           push: true
+          platforms: linux/amd64
+          provenance: false
           tags: ${{ steps.meta-proposer.outputs.tags }}
           labels: ${{ steps.meta-proposer.outputs.labels }}
           cache-from: |
@@ -118,6 +120,8 @@ jobs:
           context: .
           file: fault-proof/Dockerfile.challenger
           push: true
+          platforms: linux/amd64
+          provenance: false
           tags: ${{ steps.meta-challenger.outputs.tags }}
           labels: ${{ steps.meta-challenger.outputs.labels }}
           cache-from: |
