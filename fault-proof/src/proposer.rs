@@ -379,7 +379,7 @@ where
             };
 
         tracing::info!(
-            "Calcsulated values - Latest proposed block: {:?}, Next block for proposal: {:?}, Parent game index: {:?}",
+            "Calculated values - Latest proposed block: {:?}, Next block for proposal: {:?}, Parent game index: {:?}",
             latest_proposed_block_number,
             next_l2_block_number_for_proposal,
             parent_game_index
