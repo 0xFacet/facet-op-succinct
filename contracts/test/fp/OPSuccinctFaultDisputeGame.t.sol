@@ -69,7 +69,7 @@ contract OPSuccinctFaultDisputeGameTest is Test {
     uint256 disputeGameFinalityDelaySeconds = 1000;
 
     // Fixed parameters.
-    GameType gameType = GameType.wrap(42);
+    GameType gameType = GameType.wrap(1);
     Duration maxChallengeDuration = Duration.wrap(12 hours);
     Duration maxProveDuration = Duration.wrap(3 days);
     Claim rootClaim = Claim.wrap(keccak256("rootClaim"));
@@ -98,7 +98,7 @@ contract OPSuccinctFaultDisputeGameTest is Test {
 
         // Create an anchor state registry.
         SuperchainConfig superchainConfig = new SuperchainConfig();
-        portal = new MockOptimismPortal2(gameType, disputeGameFinalityDelaySeconds);
+        portal = new MockOptimismPortal2(GameType.wrap(1), disputeGameFinalityDelaySeconds);
         OutputRoot memory startingAnchorRoot = OutputRoot({root: Hash.wrap(keccak256("genesis")), l2BlockNumber: 0});
 
         ERC1967Proxy proxy = new ERC1967Proxy(
@@ -568,48 +568,6 @@ contract OPSuccinctFaultDisputeGameTest is Test {
         game.prove(bytes(""));
         vm.stopPrank();
     }
-
-    // =========================================
-    // Test: Cannot create a game with a blacklisted parent game
-    // =========================================
-    // function testParentGameNotValid() public {
-    //     portal.blacklistDisputeGame(IDisputeGame(address(game)));
-
-    //     vm.startPrank(proposer);
-    //     vm.deal(proposer, 1 ether);
-    //     vm.expectRevert(InvalidParentGame.selector);
-    //     factory.create{value: 1 ether}(
-    //         gameType, Claim.wrap(keccak256("blacklisted-parent-game")), abi.encodePacked(uint256(3000), uint32(1))
-    //     );
-    //     vm.stopPrank();
-    // }
-
-    // =========================================
-    // Test: Cannot create a game with a parent game that is not respected
-    // =========================================
-    // function testParentGameNotRespected() public {
-    //     // Create a game that is not respected at index 2.
-    //     vm.startPrank(proposer);
-    //     vm.deal(proposer, 1 ether);
-    //     factory.create{value: 1 ether}(
-    //         gameType, Claim.wrap(keccak256("not-respected-parent-game")), abi.encodePacked(uint256(3000), uint32(1))
-    //     );
-    //     vm.stopPrank();
-
-    //     // Set the respected game type to a different game type.
-    //     portal.setRespectedGameType(GameType.wrap(43));
-
-    //     // Try to create a game with a parent game that is not respected.
-    //     vm.startPrank(proposer);
-    //     vm.deal(proposer, 1 ether);
-    //     vm.expectRevert(InvalidParentGame.selector);
-    //     factory.create{value: 1 ether}(
-    //         gameType,
-    //         Claim.wrap(keccak256("child-with-not-respected-parent")),
-    //         abi.encodePacked(uint256(4000), uint32(2))
-    //     );
-    //     vm.stopPrank();
-    // }
 
     // =========================================
     // Test: Cannot close the game before it is resolved
