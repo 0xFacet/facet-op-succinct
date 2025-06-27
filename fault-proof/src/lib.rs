@@ -2,7 +2,15 @@ pub mod config;
 pub mod contract;
 pub mod prometheus;
 pub mod proposer;
+pub mod rollup_config;
+pub mod rollup_contract;
+pub mod rollup_proposer;
+pub mod rollup_prometheus;
+pub mod rollup_challenger;
 pub mod utils;
+
+#[cfg(test)]
+pub mod test_utils;
 
 use alloy_eips::BlockNumberOrTag;
 use alloy_primitives::{address, keccak256, Address, FixedBytes, B256, U256};
@@ -21,7 +29,6 @@ use crate::{
         AnchorStateRegistry, DisputeGameFactory::DisputeGameFactoryInstance, GameStatus, L2Output,
         OPSuccinctFaultDisputeGame, ProposalStatus,
     },
-    prometheus::ProposerGauge,
 };
 use op_succinct_host_utils::metrics::MetricsGauge;
 
@@ -445,6 +452,13 @@ where
         };
 
         let mut game_index = latest_game_index.saturating_sub(U256::from(max_games_to_check));
+        
+        tracing::info!(
+            "Searching for {} - checking games from index {} to {}",
+            log_message,
+            game_index,
+            latest_game_index
+        );
 
         while game_index <= latest_game_index {
             let game_address = self.fetch_game_address_by_index(game_index).await?;
@@ -453,9 +467,10 @@ where
 
             if !status_check(claim_data.status) {
                 tracing::info!(
-                    "Game {:?} at index {:?} does not match status criteria, skipping",
+                    "Game {:?} at index {:?} has status {:?}, does not match status criteria, skipping",
                     game_address,
-                    game_index
+                    game_index,
+                    claim_data.status
                 );
                 game_index += U256::from(1);
                 continue;
@@ -491,6 +506,14 @@ where
                     block_number
                 );
                 return Ok(Some(game_address));
+            } else {
+                tracing::info!(
+                    "Game {:?} at index {:?} output root mismatch - computed: {:?}, claimed: {:?}",
+                    game_address,
+                    game_index,
+                    output_root,
+                    game_claim
+                );
             }
 
             game_index += U256::from(1);
@@ -707,7 +730,7 @@ where
                     )
                     .await
                 {
-                    ProposerGauge::GamesResolved.increment(1.0);
+                    rollup_prometheus::ProposerGauge::ProposalsResolved.increment(1.0);
                 }
             }
         } else {

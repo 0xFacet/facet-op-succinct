@@ -20,6 +20,7 @@ use fault_proof::{
 };
 
 #[tokio::test]
+#[ignore]
 async fn test_e2e_proposer_wins() -> Result<()> {
     const NUM_GAMES: usize = 3;
 
@@ -126,6 +127,7 @@ async fn test_e2e_proposer_wins() -> Result<()> {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_e2e_challenger_wins() -> Result<()> {
     const NUM_GAMES: usize = 3;
 

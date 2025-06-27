@@ -135,8 +135,10 @@ deploy-fdg-contracts env_file=".env":
     
     # Run deployment script
     echo "Running deployment script..."
-    forge script script/fp/DeployOPSuccinctFDG.s.sol \
+    forge script script/DeployRollup.s.sol \
         --broadcast \
+        --slow \
+        --verify \
         --rpc-url "$RPC_URL_TO_USE" \
         --private-key "$PRIVATE_KEY"
     

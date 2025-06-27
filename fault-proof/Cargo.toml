@@ -19,6 +19,18 @@ path = "bin/proposer.rs"
 name = "challenger"
 path = "bin/challenger.rs"
 
+[[bin]]
+name = "rollup-proposer"
+path = "bin/rollup_proposer.rs"
+
+[[bin]]
+name = "rollup-challenger"
+path = "bin/rollup_challenger.rs"
+
+[[example]]
+name = "test_proposal_flow"
+path = "examples/test_proposal_flow.rs"
+
 [dependencies]
 # local
 op-succinct-client-utils.workspace = true
@@ -61,6 +73,7 @@ rustls = "0.23"
 
 [dev-dependencies]
 alloy-signer-local.workspace = true
+mockall = "0.12"
 
 [features]
 default = ["ethereum"]

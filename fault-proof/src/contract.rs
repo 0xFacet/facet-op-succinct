@@ -1,5 +1,8 @@
 use alloy_sol_macro::sol;
 
+// Re-export the Rollup contract bindings
+pub use crate::rollup_contract::Rollup;
+
 sol! {
     type GameType is uint32;
     type Claim is bytes32;
