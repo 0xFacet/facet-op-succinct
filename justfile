@@ -93,7 +93,7 @@ upgrade-l2oo l1_rpc admin_pk etherscan_api_key="":
   cd contracts && forge script script/validity/OPSuccinctUpgrader.s.sol:OPSuccinctUpgrader  --rpc-url $L1_RPC --private-key $ADMIN_PK $VERIFY --broadcast --slow
 
 # Deploy OPSuccinct FDG contracts
-deploy-fdg-contracts env_file=".env":
+deploy-contracts env_file=".env":
     #!/usr/bin/env bash
     set -euo pipefail
     

@@ -5,15 +5,15 @@ use alloy_transport_http::reqwest::Url;
 use anyhow::Result;
 
 #[derive(Debug, Clone)]
-pub struct ProposerConfig {
+pub struct RollupProposerConfig {
     /// The L1 RPC URL.
     pub l1_rpc: Url,
 
     /// The L2 RPC URL.
     pub l2_rpc: Url,
 
-    /// The address of the factory contract.
-    pub factory_address: Address,
+    /// The address of the rollup contract.
+    pub rollup_address: Address,
 
     /// Whether to use mock mode.
     pub mock_mode: bool,
@@ -32,23 +32,20 @@ pub struct ProposerConfig {
     /// 4. Optionally attempts to resolve unchallenged games
     pub fetch_interval: u64,
 
-    /// The type of game to propose.
-    pub game_type: u32,
+    /// The number of proposals to check for defense.
+    pub max_proposals_to_check_for_defense: u64,
 
-    /// The number of games to check for defense.
-    pub max_games_to_check_for_defense: u64,
+    /// Whether to enable proposal resolution.
+    /// When proposal resolution is not enabled, the proposer will only propose new proposals.
+    pub enable_proposal_resolution: bool,
 
-    /// Whether to enable game resolution.
-    /// When game resolution is not enabled, the proposer will only propose new games.
-    pub enable_game_resolution: bool,
+    /// The number of proposals to check for resolution.
+    /// When proposal resolution is enabled, the proposer will attempt to resolve proposals that are
+    /// unchallenged up to `max_proposals_to_check_for_resolution` proposals behind the latest proposal.
+    pub max_proposals_to_check_for_resolution: u64,
 
-    /// The number of games to check for resolution.
-    /// When game resolution is enabled, the proposer will attempt to resolve games that are
-    /// unchallenged up to `max_games_to_check_for_resolution` games behind the latest game.
-    pub max_games_to_check_for_resolution: u64,
-
-    /// The maximum number of games to check for bond claiming.
-    pub max_games_to_check_for_bond_claiming: u64,
+    /// The maximum number of proposals to check for bond claiming.
+    pub max_proposals_to_check_for_bond_claiming: u64,
 
     /// Whether to fallback to timestamp-based L1 head estimation even though SafeDB is not
     /// activated for op-node.
@@ -58,12 +55,12 @@ pub struct ProposerConfig {
     pub metrics_port: u16,
 }
 
-impl ProposerConfig {
+impl RollupProposerConfig {
     pub fn from_env() -> Result<Self> {
         Ok(Self {
             l1_rpc: env::var("L1_RPC")?.parse().expect("L1_RPC not set"),
             l2_rpc: env::var("L2_RPC")?.parse().expect("L2_RPC not set"),
-            factory_address: env::var("FACTORY_ADDRESS")?.parse().expect("FACTORY_ADDRESS not set"),
+            rollup_address: env::var("ROLLUP_ADDRESS")?.parse().expect("ROLLUP_ADDRESS not set"),
             mock_mode: env::var("MOCK_MODE").unwrap_or("false".to_string()).parse()?,
             fast_finality_mode: env::var("FAST_FINALITY_MODE")
                 .unwrap_or("false".to_string())
@@ -72,17 +69,16 @@ impl ProposerConfig {
                 .unwrap_or("1800".to_string())
                 .parse()?,
             fetch_interval: env::var("FETCH_INTERVAL").unwrap_or("30".to_string()).parse()?,
-            game_type: env::var("GAME_TYPE").expect("GAME_TYPE not set").parse()?,
-            max_games_to_check_for_defense: env::var("MAX_GAMES_TO_CHECK_FOR_DEFENSE")
+            max_proposals_to_check_for_defense: env::var("MAX_PROPOSALS_TO_CHECK_FOR_DEFENSE")
                 .unwrap_or("100".to_string())
                 .parse()?,
-            enable_game_resolution: env::var("ENABLE_GAME_RESOLUTION")
+            enable_proposal_resolution: env::var("ENABLE_PROPOSAL_RESOLUTION")
                 .unwrap_or("true".to_string())
                 .parse()?,
-            max_games_to_check_for_resolution: env::var("MAX_GAMES_TO_CHECK_FOR_RESOLUTION")
+            max_proposals_to_check_for_resolution: env::var("MAX_PROPOSALS_TO_CHECK_FOR_RESOLUTION")
                 .unwrap_or("100".to_string())
                 .parse()?,
-            max_games_to_check_for_bond_claiming: env::var("MAX_GAMES_TO_CHECK_FOR_BOND_CLAIMING")
+            max_proposals_to_check_for_bond_claiming: env::var("MAX_PROPOSALS_TO_CHECK_FOR_BOND_CLAIMING")
                 .unwrap_or("100".to_string())
                 .parse()?,
             safe_db_fallback: env::var("SAFE_DB_FALLBACK")
@@ -99,30 +95,28 @@ impl ProposerConfig {
 pub struct ChallengerConfig {
     pub l1_rpc: Url,
     pub l2_rpc: Url,
-    pub factory_address: Address,
+    pub rollup_address: Address,
 
     /// The interval in seconds between checking for new challenges opportunities.
     pub fetch_interval: u64,
 
-    /// The game type to challenge.
-    pub game_type: u32,
 
-    /// The number of games to check for challenges.
-    /// The challenger will check for challenges up to `max_games_to_check_for_challenge` games
-    /// behind the latest game.
-    pub max_games_to_check_for_challenge: u64,
+    /// The number of proposals to check for challenges.
+    /// The challenger will check for challenges up to `max_proposals_to_check_for_challenge` proposals
+    /// behind the latest proposal.
+    pub max_proposals_to_check_for_challenge: u64,
 
-    /// Whether to enable game resolution.
-    /// When game resolution is not enabled, the challenger will only challenge games.
-    pub enable_game_resolution: bool,
+    /// Whether to enable proposal resolution.
+    /// When proposal resolution is not enabled, the challenger will only challenge proposals.
+    pub enable_proposal_resolution: bool,
 
-    /// The number of games to check for resolution.
-    /// When game resolution is enabled, the challenger will attempt to resolve games that are
-    /// challenged up to `max_games_to_check_for_resolution` games behind the latest game.
-    pub max_games_to_check_for_resolution: u64,
+    /// The number of proposals to check for resolution.
+    /// When proposal resolution is enabled, the challenger will attempt to resolve proposals that are
+    /// challenged up to `max_proposals_to_check_for_resolution` proposals behind the latest proposal.
+    pub max_proposals_to_check_for_resolution: u64,
 
-    /// The maximum number of games to check for bond claiming.
-    pub max_games_to_check_for_bond_claiming: u64,
+    /// The maximum number of proposals to check for bond claiming.
+    pub max_proposals_to_check_for_bond_claiming: u64,
 
     /// The metrics port.
     pub metrics_port: u16,
@@ -138,19 +132,18 @@ impl ChallengerConfig {
         Ok(Self {
             l1_rpc: env::var("L1_RPC")?.parse().expect("L1_RPC not set"),
             l2_rpc: env::var("L2_RPC")?.parse().expect("L2_RPC not set"),
-            factory_address: env::var("FACTORY_ADDRESS")?.parse().expect("FACTORY_ADDRESS not set"),
-            game_type: env::var("GAME_TYPE").expect("GAME_TYPE not set").parse()?,
+            rollup_address: env::var("ROLLUP_ADDRESS")?.parse().expect("ROLLUP_ADDRESS not set"),
             fetch_interval: env::var("FETCH_INTERVAL").unwrap_or("30".to_string()).parse()?,
-            max_games_to_check_for_challenge: env::var("MAX_GAMES_TO_CHECK_FOR_CHALLENGE")
+            max_proposals_to_check_for_challenge: env::var("MAX_PROPOSALS_TO_CHECK_FOR_CHALLENGE")
                 .unwrap_or("100".to_string())
                 .parse()?,
-            enable_game_resolution: env::var("ENABLE_GAME_RESOLUTION")
+            enable_proposal_resolution: env::var("ENABLE_PROPOSAL_RESOLUTION")
                 .unwrap_or("true".to_string())
                 .parse()?,
-            max_games_to_check_for_resolution: env::var("MAX_GAMES_TO_CHECK_FOR_RESOLUTION")
+            max_proposals_to_check_for_resolution: env::var("MAX_PROPOSALS_TO_CHECK_FOR_RESOLUTION")
                 .unwrap_or("100".to_string())
                 .parse()?,
-            max_games_to_check_for_bond_claiming: env::var("MAX_GAMES_TO_CHECK_FOR_BOND_CLAIMING")
+            max_proposals_to_check_for_bond_claiming: env::var("MAX_PROPOSALS_TO_CHECK_FOR_BOND_CLAIMING")
                 .unwrap_or("100".to_string())
                 .parse()?,
             metrics_port: env::var("CHALLENGER_METRICS_PORT")
