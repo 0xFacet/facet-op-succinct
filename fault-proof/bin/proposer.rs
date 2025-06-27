@@ -6,7 +6,7 @@ use alloy_transport_http::reqwest::Url;
 use anyhow::Result;
 use clap::Parser;
 use fault_proof::{
-    contract::DisputeGameFactory, prometheus::ProposerGauge, proposer::OPSuccinctProposer,
+    contract::Rollup, prometheus::ProposerGauge, proposer::RollupProposer,
     utils::setup_logging,
 };
 use op_succinct_host_utils::{
@@ -38,9 +38,9 @@ async fn main() -> Result<()> {
     let l1_provider =
         ProviderBuilder::new().connect_http(env::var("L1_RPC").unwrap().parse::<Url>().unwrap());
 
-    let factory = DisputeGameFactory::new(
-        env::var("FACTORY_ADDRESS")
-            .expect("FACTORY_ADDRESS must be set")
+    let rollup = Rollup::new(
+        env::var("ROLLUP_ADDRESS")
+            .expect("ROLLUP_ADDRESS must be set")
             .parse::<Address>()
             .unwrap(),
         l1_provider.clone(),
@@ -56,7 +56,7 @@ async fn main() -> Result<()> {
     let fetcher = OPSuccinctDataFetcher::new_with_rollup_config().await?;
     let host = initialize_host(Arc::new(fetcher.clone()));
     let proposer =
-        OPSuccinctProposer::new(prover_address, proposer_signer, factory, Arc::new(fetcher), host)
+        RollupProposer::new(prover_address, proposer_signer, rollup, Arc::new(fetcher), host)
             .await
             .unwrap();
 

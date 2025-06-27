@@ -1,19 +1,16 @@
-use std::{env, time::Duration};
+use std::{env, sync::Arc, time::Duration};
 
-use alloy_primitives::{Address, U256};
+use alloy_primitives::{Address, TxHash, U256};
 use alloy_provider::{Provider, ProviderBuilder};
 use alloy_transport_http::reqwest::Url;
 use anyhow::Result;
 use clap::Parser;
 use fault_proof::{
+    contract::Rollup::{self, RollupInstance},
     config::ChallengerConfig,
-    contract::{
-        DisputeGameFactory::{self, DisputeGameFactoryInstance},
-        OPSuccinctFaultDisputeGame,
-    },
     prometheus::ChallengerGauge,
     utils::setup_logging,
-    Action, FactoryTrait, L1Provider, L2Provider, Mode,
+    Action, L1Provider, L2Provider, L2ProviderTrait, Mode, RollupTrait,
 };
 use op_succinct_host_utils::metrics::{init_metrics, MetricsGauge};
 use op_succinct_signer_utils::Signer;
@@ -26,50 +23,64 @@ struct Args {
     env_file: String,
 }
 
-struct OPSuccinctChallenger<P>
+pub struct RollupChallenger<P>
 where
-    P: Provider + Clone,
+    P: Provider + Clone + Send + Sync,
 {
-    config: ChallengerConfig,
-    challenger_address: Address,
-    signer: Signer,
-    l1_provider: L1Provider,
-    l2_provider: L2Provider,
-    factory: DisputeGameFactoryInstance<P>,
-    challenger_bond: U256,
+    pub config: ChallengerConfig,
+    pub signer: Signer,
+    pub l1_provider: L1Provider,
+    pub l2_provider: L2Provider,
+    pub rollup: Arc<RollupInstance<P>>,
+    pub challenger_bond: U256,
 }
 
-impl<P> OPSuccinctChallenger<P>
+impl<P> RollupChallenger<P>
 where
-    P: Provider + Clone,
+    P: Provider + Clone + Send + Sync,
 {
-    /// Creates a new challenger instance with the provided L1 provider with wallet and factory
-    /// contract instance.
+    /// Creates a new challenger instance for the Rollup contract
     pub async fn new(
-        challenger_address: Address,
         signer: Signer,
-        l1_provider: L1Provider,
-        factory: DisputeGameFactoryInstance<P>,
+        rollup: RollupInstance<P>,
     ) -> Result<Self> {
         let config = ChallengerConfig::from_env()?;
+        let challenger_bond = rollup.CHALLENGER_BOND().call().await?;
 
         Ok(Self {
             config: config.clone(),
-            challenger_address,
             signer,
-            l1_provider: l1_provider.clone(),
-            l2_provider: ProviderBuilder::default().connect_http(config.l2_rpc.clone()),
-            factory: factory.clone(),
-            challenger_bond: factory.fetch_challenger_bond(config.game_type).await?,
+            l1_provider: ProviderBuilder::default().connect_http(config.l1_rpc.clone()),
+            l2_provider: ProviderBuilder::default().connect_http(config.l2_rpc),
+            rollup: Arc::new(rollup),
+            challenger_bond,
         })
     }
 
-    /// Challenges a specific game at the given address.
-    async fn challenge_game(&self, game_address: Address) -> Result<()> {
-        let game = OPSuccinctFaultDisputeGame::new(game_address, self.l1_provider.clone());
+    /// Check if a proposal claims a non-existent block
+    async fn is_claiming_future_block(&self, l2_block_number: u128) -> Result<Option<u64>> {
+        match self.l2_provider.get_l2_block_by_number(alloy_eips::BlockNumberOrTag::Latest).await {
+            Ok(block) => {
+                let current_max = block.header.number;
+                if l2_block_number > current_max as u128 {
+                    Ok(Some(current_max))
+                } else {
+                    Ok(None)
+                }
+            }
+            Err(e) => Err(anyhow::anyhow!("Failed to get current max block height: {}", e))
+        }
+    }
 
-        let transaction_request =
-            game.challenge().value(self.challenger_bond).into_transaction_request();
+    /// Challenges a proposal with an invalid output root
+    pub async fn challenge_proposal(&self, proposal_id: U256) -> Result<TxHash> {
+        tracing::info!("Challenging proposal {}", proposal_id);
+
+        let transaction_request = self
+            .rollup
+            .challengeProposal(proposal_id)
+            .value(self.challenger_bond)
+            .into_transaction_request();
 
         let receipt = self
             .signer
@@ -77,201 +88,189 @@ where
             .await?;
 
         tracing::info!(
-            "Successfully challenged game {:?} with tx {:?}",
-            game_address,
+            "\x1b[1mSuccessfully challenged proposal {} with tx {:?}\x1b[0m",
+            proposal_id,
             receipt.transaction_hash
         );
+
+        Ok(receipt.transaction_hash)
+    }
+
+    /// Handles challenging invalid proposals
+    pub async fn handle_proposal_challenges(&self) -> Result<()> {
+        let _span = tracing::info_span!("[[Challenging]]").entered();
+
+        // Find oldest challengable proposal
+        let proposal_id = match self.rollup.get_oldest_challengable_proposal(
+            self.config.max_proposals_to_check_for_challenge,
+            self.l2_provider.clone(),
+        ).await? {
+            Some(id) => id,
+            None => {
+                tracing::debug!("No challengable proposals found");
+                return Ok(());
+            }
+        };
+
+        let proposal = self.rollup.getProposal(proposal_id).call().await?;
+
+        // Handle malicious challenges for testing
+        if self.config.malicious_challenge_percentage > 0.0 {
+            let output_root = self.l2_provider
+                .compute_output_root_at_block(U256::from(proposal.l2BlockNumber))
+                .await;
+            
+            if let Ok(root) = output_root {
+                if root == proposal.rootClaim {
+                    let random_value: f64 = rand::rng().random::<f64>() * 100.0;
+                    if random_value < self.config.malicious_challenge_percentage {
+                        tracing::warn!(
+                            "Maliciously challenging valid proposal {} for testing",
+                            proposal_id
+                        );
+                        match self.challenge_proposal(proposal_id).await {
+                            Ok(_) => ChallengerGauge::ProposalsChallenged.increment(1.0),
+                            Err(e) => {
+                                tracing::warn!("Failed to challenge proposal {}: {:?}", proposal_id, e);
+                                ChallengerGauge::ProposalChallengeError.increment(1.0);
+                            }
+                        }
+                        return Ok(());
+                    }
+                }
+            }
+        }
+
+        // Challenge the proposal (we already know it's invalid from get_oldest_challengable_proposal)
+        match self.challenge_proposal(proposal_id).await {
+            Ok(_) => ChallengerGauge::ProposalsChallenged.increment(1.0),
+            Err(e) => {
+                // Special handling for future block errors
+                let error_msg = e.to_string();
+                if error_msg.contains("Failed to get L2 block by number") {
+                    if let Some(current_max) = self.is_claiming_future_block(proposal.l2BlockNumber).await? {
+                        tracing::info!(
+                            "Challenging proposal {} with future L2 block {} (current max: {})",
+                            proposal_id,
+                            proposal.l2BlockNumber,
+                            current_max
+                        );
+                        match self.challenge_proposal(proposal_id).await {
+                            Ok(_) => ChallengerGauge::ProposalsChallenged.increment(1.0),
+                            Err(e) => {
+                                tracing::warn!("Failed to challenge proposal {}: {:?}", proposal_id, e);
+                                ChallengerGauge::ProposalChallengeError.increment(1.0);
+                            }
+                        }
+                    } else {
+                        return Err(anyhow::anyhow!(
+                            "L2 block {} not found but within current range. Possible data issue.",
+                            proposal.l2BlockNumber
+                        ));
+                    }
+                } else {
+                    tracing::warn!("Failed to challenge proposal {}: {:?}", proposal_id, e);
+                    ChallengerGauge::ProposalChallengeError.increment(1.0);
+                }
+            }
+        }
 
         Ok(())
     }
 
-    /// Gets the oldest valid game address for malicious challenging (for defense mechanisms
-    /// testing purposes). This finds games with correct output roots that can be challenged to
-    /// test defense mechanisms.
-    async fn get_oldest_valid_game_for_malicious_challenge(&self) -> Result<Option<Address>> {
-        use fault_proof::contract::ProposalStatus;
-
-        self.factory
-            .get_oldest_game_address(
-                self.config.max_games_to_check_for_challenge,
-                self.l2_provider.clone(),
-                |status| status == ProposalStatus::Unchallenged,
-                |output_root, game_claim| output_root == game_claim, /* Valid games (opposite of
-                                                                      * honest challenger) */
-                "Oldest valid game for malicious challenge",
-            )
-            .await
-    }
-
-    /// Handles challenging of invalid games by scanning recent games for potential challenges.
-    /// Also supports malicious challenging of valid games for testing defense mechanisms when
-    /// configured.
-    async fn handle_game_challenging(&self) -> Result<Action> {
-        let _span = tracing::info_span!("[[Challenging]]").entered();
-
-        // Challenge invalid games (honest challenger behavior)
-        if let Some(game_address) = self
-            .factory
-            .get_oldest_challengable_game_address(
-                self.config.max_games_to_check_for_challenge,
-                self.l2_provider.clone(),
-            )
-            .await?
-        {
-            tracing::info!(
-                "\x1b[32m[CHALLENGE]\x1b[0m Attempting to challenge invalid game {:?}",
-                game_address
-            );
-            self.challenge_game(game_address).await?;
-            return Ok(Action::Performed);
-        }
-
-        // Maliciously challenge valid games (if configured for testing defense mechanisms)
-        if self.config.malicious_challenge_percentage > 0.0 {
-            tracing::debug!("Checking for valid games to challenge maliciously...");
-            if let Some(game_address) = self.get_oldest_valid_game_for_malicious_challenge().await?
-            {
-                let mut rng = rand::rng();
-                let should_challenge =
-                    rng.random_range(0.0..100.0) <= self.config.malicious_challenge_percentage;
-
-                if should_challenge {
-                    tracing::warn!(
-                        "\x1b[31m[MALICIOUS CHALLENGE]\x1b[0m Attempting to challenge valid game {:?} for testing ({}% chance)",
-                        game_address,
-                        self.config.malicious_challenge_percentage
-                    );
-                    self.challenge_game(game_address).await?;
-                    return Ok(Action::Performed);
-                } else {
-                    tracing::debug!(
-                        "Found valid game {:?} but skipping malicious challenge ({}% chance)",
-                        game_address,
-                        self.config.malicious_challenge_percentage
-                    );
-                }
-            } else {
-                tracing::debug!("No valid games found for malicious challenging");
-            }
-        }
-
-        Ok(Action::Skipped)
-    }
-
-    /// Handles resolution of challenged games that are ready to be resolved.
-    async fn handle_game_resolution(&self) -> Result<()> {
-        let _span = tracing::info_span!("[[Resolving]]").entered();
-
-        self.factory
-            .resolve_games(
-                Mode::Challenger,
-                self.config.max_games_to_check_for_resolution,
-                self.signer.clone(),
-                self.config.l1_rpc.clone(),
-                self.l1_provider.clone(),
-                self.l2_provider.clone(),
-            )
-            .await
-    }
-
-    /// Handles claiming bonds from resolved games.
+    /// Handles claiming bonds from resolved proposals
     pub async fn handle_bond_claiming(&self) -> Result<Action> {
         let _span = tracing::info_span!("[[Claiming Bonds]]").entered();
 
-        if let Some(game_address) = self
-            .factory
-            .get_oldest_claimable_bond_game_address(
-                self.config.game_type,
-                self.config.max_games_to_check_for_bond_claiming,
-                self.challenger_address,
-            )
-            .await?
+        let credit = self.rollup.credit(self.signer.address()).call().await?;
+        
+        if credit == U256::ZERO {
+            tracing::info!("No credit to claim");
+            return Ok(Action::Skipped);
+        }
+
+        tracing::info!("Attempting to claim credit: {} wei", credit);
+
+        let transaction_request = self.rollup.claimCredit(self.signer.address()).into_transaction_request();
+
+        match self
+            .signer
+            .send_transaction_request(self.config.l1_rpc.clone(), transaction_request)
+            .await
         {
-            tracing::info!("Attempting to claim bond from game {:?}", game_address);
-
-            // Create a contract instance for the game
-            let game = OPSuccinctFaultDisputeGame::new(game_address, self.l1_provider.clone());
-
-            // Create a transaction to claim credit
-            let transaction_request =
-                game.claimCredit(self.challenger_address).into_transaction_request();
-
-            match self
-                .signer
-                .send_transaction_request(self.config.l1_rpc.clone(), transaction_request)
-                .await
-            {
-                Ok(receipt) => {
-                    tracing::info!(
-                        "\x1b[1mSuccessfully claimed bond from game {:?} with tx {:?}\x1b[0m",
-                        game_address,
-                        receipt.transaction_hash
-                    );
-
-                    Ok(Action::Performed)
-                }
-                Err(e) => Err(anyhow::anyhow!(
-                    "Failed to claim bond from game {:?}: {:?}",
-                    game_address,
-                    e
-                )),
+            Ok(receipt) => {
+                tracing::info!(
+                    "\x1b[1mSuccessfully claimed {} wei with tx {:?}\x1b[0m",
+                    credit,
+                    receipt.transaction_hash
+                );
+                ChallengerGauge::BondsClaimed.increment(1.0);
+                Ok(Action::Performed)
             }
-        } else {
-            tracing::info!("No new games to claim bonds from");
-
-            Ok(Action::Skipped)
+            Err(e) => Err(anyhow::anyhow!("Failed to claim credit: {:?}", e)),
         }
     }
 
-    /// Runs the challenger in an infinite loop, periodically checking for games to challenge and
-    /// resolve.
-    async fn run(&mut self) -> Result<()> {
-        tracing::info!("OP Succinct Challenger running...");
-        if self.config.malicious_challenge_percentage > 0.0 {
-            tracing::warn!(
-                "\x1b[33mMalicious challenging enabled: {}% of valid games will be challenged for testing\x1b[0m",
-                self.config.malicious_challenge_percentage
-            );
-        } else {
-            tracing::info!("Honest challenger mode (malicious challenging disabled)");
+    /// Fetch the challenger metrics
+    async fn fetch_challenger_metrics(&self) -> Result<()> {
+        let anchor_proposal_id = U256::from(self.rollup.anchorProposalId().call().await?);
+        let anchor_proposal = self.rollup.getProposal(anchor_proposal_id).call().await?;
+        ChallengerGauge::AnchorProposalL2BlockNumber.set(anchor_proposal.l2BlockNumber as f64);
+
+        // Get latest proposal
+        let proposals_length = self.rollup.get_proposals_length().await?;
+        if proposals_length > U256::ZERO {
+            let latest_proposal_id = proposals_length - U256::from(1);
+            let latest_proposal = self.rollup.getProposal(latest_proposal_id).call().await?;
+            ChallengerGauge::LatestProposalL2BlockNumber.set(latest_proposal.l2BlockNumber as f64);
         }
+
+        Ok(())
+    }
+
+    /// Runs the challenger indefinitely
+    pub async fn run(&self) -> Result<()> {
+        tracing::info!("Rollup Challenger running...");
         let mut interval = time::interval(Duration::from_secs(self.config.fetch_interval));
+        let mut metrics_interval = time::interval(Duration::from_secs(15));
 
-        // Each loop, check the oldest challengeable game and challenge it if it exists.
-        // Eventually, all games will be challenged (as long as the rate at which games are being
-        // created is slower than the fetch interval).
         loop {
-            interval.tick().await;
+            tokio::select! {
+                _ = interval.tick() => {
+                    if let Err(e) = self.handle_proposal_challenges().await {
+                        tracing::warn!("Failed to handle proposal challenges: {:?}", e);
+                        ChallengerGauge::ProposalChallengeError.increment(1.0);
+                    }
 
-            match self.handle_game_challenging().await {
-                Ok(Action::Performed) => {
-                    ChallengerGauge::GamesChallenged.increment(1.0);
-                }
-                Ok(Action::Skipped) => {}
-                Err(e) => {
-                    tracing::warn!("Failed to handle game challenging: {:?}", e);
-                    ChallengerGauge::GameChallengingError.increment(1.0);
-                }
-            }
+                    if self.config.enable_proposal_resolution {
+                        if let Err(e) = self.rollup.resolve_proposals(
+                            Mode::Challenger,
+                            self.config.max_proposals_to_check_for_resolution,
+                            self.signer.clone(),
+                            self.config.l1_rpc.clone(),
+                            self.l2_provider.clone(),
+                        ).await {
+                            tracing::warn!("Failed to handle proposal resolution: {:?}", e);
+                            ChallengerGauge::ProposalResolutionError.increment(1.0);
+                        }
+                    }
 
-            match self.handle_game_resolution().await {
-                Ok(_) => {
-                    ChallengerGauge::GamesResolved.increment(1.0);
+                    match self.handle_bond_claiming().await {
+                        Ok(Action::Performed) => {
+                            ChallengerGauge::BondsClaimed.increment(1.0);
+                        }
+                        Ok(Action::Skipped) => {}
+                        Err(e) => {
+                            tracing::warn!("Failed to handle bond claiming: {:?}", e);
+                            ChallengerGauge::BondClaimingError.increment(1.0);
+                        }
+                    }
                 }
-                Err(e) => {
-                    tracing::warn!("Failed to handle game resolution: {:?}", e);
-                    ChallengerGauge::GameResolutionError.increment(1.0);
-                }
-            }
-
-            match self.handle_bond_claiming().await {
-                Ok(Action::Performed) => {
-                    ChallengerGauge::GamesBondsClaimed.increment(1.0);
-                }
-                Ok(Action::Skipped) => {}
-                Err(e) => {
-                    tracing::warn!("Failed to handle bond claiming: {:?}", e);
-                    ChallengerGauge::BondClaimingError.increment(1.0);
+                _ = metrics_interval.tick() => {
+                    if let Err(e) = self.fetch_challenger_metrics().await {
+                        tracing::warn!("Failed to fetch metrics: {:?}", e);
+                        ChallengerGauge::MetricsError.increment(1.0);
+                    }
                 }
             }
         }
@@ -280,6 +279,9 @@ where
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Install a default CryptoProvider once per process to satisfy rustls >=0.23.
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+
     setup_logging();
 
     let args = Args::parse();
@@ -287,37 +289,29 @@ async fn main() -> Result<()> {
 
     let challenger_signer = Signer::from_env()?;
 
-    let l1_provider = ProviderBuilder::default()
-        .connect_http(env::var("L1_RPC").unwrap().parse::<Url>().unwrap());
+    let l1_provider =
+        ProviderBuilder::new().connect_http(env::var("L1_RPC").unwrap().parse::<Url>().unwrap());
 
-    let factory = DisputeGameFactory::new(
-        env::var("FACTORY_ADDRESS")
-            .expect("FACTORY_ADDRESS must be set")
+    let rollup = Rollup::new(
+        env::var("ROLLUP_ADDRESS")
+            .expect("ROLLUP_ADDRESS must be set")
             .parse::<Address>()
             .unwrap(),
         l1_provider.clone(),
     );
 
-    let mut challenger = OPSuccinctChallenger::new(
-        challenger_signer.address(),
-        challenger_signer,
-        l1_provider,
-        factory,
-    )
-    .await
-    .unwrap();
+    let challenger = RollupChallenger::new(challenger_signer, rollup)
+        .await
+        .unwrap();
 
-    // Initialize challenger gauges.
+    // Initialize challenger gauges
     ChallengerGauge::register_all();
 
-    // Initialize metrics exporter.
+    // Initialize metrics exporter
     init_metrics(&challenger.config.metrics_port);
 
-    // Initialize the metrics gauges.
+    // Initialize the metrics gauges
     ChallengerGauge::init_all();
-
-    // Install a default CryptoProvider (aws-lc-rs backend) once per process.
-    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 
     challenger.run().await.expect("Runs in an infinite loop");
 
