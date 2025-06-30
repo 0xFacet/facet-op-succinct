@@ -57,6 +57,9 @@ pub struct RollupProposerConfig {
     /// Maximum number of blocks per range proof.
     /// Splitting large ranges prevents hitting SP1's 16 MiB witness limit.
     pub range_proof_interval: u64,
+
+    /// Cycle limit passed to SP1 when generating a range proof.
+    pub cycle_limit: u64,
 }
 
 impl RollupProposerConfig {
@@ -93,6 +96,9 @@ impl RollupProposerConfig {
         let range_proof_interval: u64 = env::var("RANGE_PROOF_INTERVAL")
             .unwrap_or("512".to_string())
             .parse()?;
+        let cycle_limit: u64 = env::var("SP1_CYCLE_LIMIT")
+            .unwrap_or("100000000000".to_string())
+            .parse()?;
 
         let config = Self {
             l1_rpc,
@@ -109,6 +115,7 @@ impl RollupProposerConfig {
             safe_db_fallback,
             metrics_port,
             range_proof_interval,
+            cycle_limit,
         };
 
         // Log all configuration values
@@ -127,6 +134,7 @@ impl RollupProposerConfig {
         tracing::info!("  Safe DB Fallback: {}", config.safe_db_fallback);
         tracing::info!("  Metrics Port: {}", config.metrics_port);
         tracing::info!("  Range Proof Interval: {}", config.range_proof_interval);
+        tracing::info!("  SP1 Cycle Limit: {}", config.cycle_limit);
 
         Ok(config)
     }
