@@ -124,8 +124,6 @@ where
             }
         }
 
-        // Get proposal details
-        let proposal = self.rollup.getProposal(proposal_id).call().await?;
         let l1_head_hash = proposal.l1Head;
         tracing::debug!("L1 head hash: {:?}", hex::encode(l1_head_hash));
         let l2_block_number = proposal.l2BlockNumber;
