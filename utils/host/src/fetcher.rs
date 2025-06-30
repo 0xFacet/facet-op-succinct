@@ -121,6 +121,13 @@ impl OPSuccinctDataFetcher {
     pub async fn new_with_rollup_config() -> Result<Self> {
         let rpc_config = get_rpcs();
 
+        // Log RPC configuration values
+        tracing::info!("Initializing OPSuccinctDataFetcher with RPC configuration:");
+        tracing::info!("  L1_RPC: {}", rpc_config.l1_rpc);
+        tracing::info!("  L1_BEACON_RPC: {}", rpc_config.l1_beacon_rpc);
+        tracing::info!("  L2_RPC: {}", rpc_config.l2_rpc);
+        tracing::info!("  L2_NODE_RPC: {}", rpc_config.l2_node_rpc);
+
         let l1_provider =
             Arc::new(ProviderBuilder::default().connect_http(rpc_config.l1_rpc.clone()));
         let l2_provider =
@@ -128,6 +135,17 @@ impl OPSuccinctDataFetcher {
 
         let (rollup_config, rollup_config_path) =
             Self::fetch_and_save_rollup_config(&rpc_config).await?;
+
+        // Log rollup configuration values
+        tracing::info!("Fetched rollup configuration:");
+        tracing::info!("  L2 Chain ID: {}", rollup_config.l2_chain_id);
+        tracing::info!("  Genesis L1 Block: {}", rollup_config.genesis.l1.number);
+        tracing::info!("  Genesis L1 Hash: 0x{:x}", rollup_config.genesis.l1.hash);
+        tracing::info!("  Genesis L2 Block: {}", rollup_config.genesis.l2.number);
+        tracing::info!("  Genesis L2 Hash: 0x{:x}", rollup_config.genesis.l2.hash);
+        tracing::info!("  Genesis L2 Time: {}", rollup_config.genesis.l2_time);
+        tracing::info!("  Batch Inbox Address: 0x{:x}", rollup_config.batch_inbox_address);
+        tracing::info!("  Rollup Config Path: {:?}", rollup_config_path);
 
         // Add warning if the chain is pre-Holocene, as derivation is significantly slower.
         let unix_timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
