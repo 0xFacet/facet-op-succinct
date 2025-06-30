@@ -148,7 +148,7 @@ where
                 // Special handling for future block errors
                 let error_msg = e.to_string();
                 if error_msg.contains("Failed to get L2 block by number") {
-                    if let Some(current_max) = self.is_claiming_future_block(proposal.l2BlockNumber).await? {
+                    if let Some(current_max) = self.is_claiming_future_block(proposal.l2BlockNumber.into()).await? {
                         tracing::info!(
                             "Challenging proposal {} with future L2 block {} (current max: {})",
                             proposal_id,

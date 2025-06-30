@@ -304,7 +304,7 @@ where
                 .header
                 .timestamp;
             
-            if proposal.deadline < current_timestamp {
+            if u64::from(proposal.deadline) < current_timestamp {
                 tracing::debug!(
                     "Proposal {} deadline {} has passed, cannot challenge/defend",
                     proposal_id,

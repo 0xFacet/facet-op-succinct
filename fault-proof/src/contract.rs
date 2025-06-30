@@ -55,18 +55,21 @@ sol! {
         mapping(address => uint256) public credit;
         mapping(address => bool) public whitelistedProposer;
         uint256 public lastProposalTimestamp;
-
-        // Proposal struct
+        
         struct Proposal {
             bytes32 rootClaim;
             bytes32 l1Head;
-            uint128 l2BlockNumber;
-            uint64 deadline;
-            uint64 resolvedAt;
-            address proposer;
-            uint32 parentIndex;
-            ProposalStatus proposalStatus;
-            ResolutionStatus resolutionStatus;
+    
+            // packed slot
+            address proposer;     // 20 B
+            uint32  l2BlockNumber;
+            uint32  parentIndex;
+            uint32  deadline;
+    
+            // existing small fields stay in next slot
+            uint64  resolvedAt;
+            ProposalStatus   proposalStatus;   // 1 B
+            ResolutionStatus resolutionStatus; // 1 B
             address challenger;
             address prover;
         }

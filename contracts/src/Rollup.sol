@@ -4,16 +4,6 @@ pragma solidity 0.8.24;
 import { ISP1Verifier } from "@sp1-contracts/src/ISP1Verifier.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-struct AggregationOutputs {
-    bytes32 l1Head;
-    bytes32 l2PreRoot;
-    bytes32 claimRoot;
-    uint256 claimBlockNum;
-    bytes32 rollupConfigHash;
-    bytes32 rangeVkeyCommitment;
-    address proverAddress;
-}
-
 /// @title Rollup
 /// @notice Single-contract fault-proof system: submit → challenge → prove → resolve.
 contract Rollup is Ownable {
@@ -84,15 +74,28 @@ contract Rollup is Ownable {
     struct Proposal {
         bytes32 rootClaim;
         bytes32 l1Head;
-        uint128 l2BlockNumber;
-        uint64 deadline;
-        uint64 resolvedAt;
+
+        // packed slot
         address proposer;
-        uint32 parentIndex;
+        uint32  l2BlockNumber;
+        uint32  parentIndex;
+        uint32  deadline;
+
+        uint64  resolvedAt;
         ProposalStatus proposalStatus;
         ResolutionStatus resolutionStatus;
         address challenger;
         address prover;
+    }
+    
+    struct AggregationOutputs {
+        bytes32 l1Head;
+        bytes32 l2PreRoot;
+        bytes32 claimRoot;
+        uint256 claimBlockNum;
+        bytes32 rollupConfigHash;
+        bytes32 rangeVkeyCommitment;
+        address proverAddress;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -144,7 +147,7 @@ contract Rollup is Ownable {
         Proposal memory genesis = Proposal({
             l1Head: bytes32(0),
             rootClaim: _startRoot,
-            l2BlockNumber: _startBlock,
+            l2BlockNumber: uint32(_startBlock),
             parentIndex: 0,
             deadline: 0,
             proposer: address(0),
@@ -181,11 +184,11 @@ contract Rollup is Ownable {
         proposalId = proposals.length - 1;
         
         Proposal storage p = proposals[proposalId];
-        p.l1Head = blockhash(block.number - 5);
+        p.l1Head = blockhash(block.number - 1);
         p.rootClaim = root;
-        p.l2BlockNumber = l2BlockNumber;
+        p.l2BlockNumber = uint32(l2BlockNumber);
         p.parentIndex = anchorProposalId;
-        p.deadline = uint64(block.timestamp + MAX_CHALLENGE_SECS);
+        p.deadline = uint32(block.timestamp + MAX_CHALLENGE_SECS);
         p.proposer = msg.sender;
 
         emit ProposalSubmitted(proposalId, msg.sender, root, l2BlockNumber);
@@ -198,7 +201,7 @@ contract Rollup is Ownable {
 
         p.challenger = msg.sender;
         p.proposalStatus = ProposalStatus.Challenged;
-        p.deadline = uint64(block.timestamp + MAX_PROVE_SECS);
+        p.deadline = uint32(block.timestamp + MAX_PROVE_SECS);
 
         emit ProposalChallenged(id, msg.sender);
     }

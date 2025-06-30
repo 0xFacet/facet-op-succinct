@@ -7,6 +7,7 @@ use anyhow::{Context, Result};
 use op_succinct_client_utils::boot::BootInfoStruct;
 use op_succinct_elfs::AGGREGATION_ELF;
 use op_succinct_host_utils::{
+    block_range::{split_range_based_on_safe_heads, split_range_basic, SpanBatchRange},
     fetcher::OPSuccinctDataFetcher, get_agg_proof_stdin, host::OPSuccinctHost,
     metrics::MetricsGauge, witness_generation::WitnessGenerator,
 };
@@ -122,103 +123,125 @@ where
                 return Err(anyhow::anyhow!("Proposal {} is not in a challenged state", proposal_id));
             }
         }
-        let fetcher = match OPSuccinctDataFetcher::new_with_rollup_config().await {
-            Ok(f) => f,
-            Err(e) => {
-                tracing::error!("Failed to create data fetcher: {}", e);
-                return Err(anyhow::anyhow!("Failed to create data fetcher: {}", e));
-            }
-        };
 
         // Get proposal details
         let proposal = self.rollup.getProposal(proposal_id).call().await?;
         let l1_head_hash = proposal.l1Head;
         tracing::debug!("L1 head hash: {:?}", hex::encode(l1_head_hash));
         let l2_block_number = proposal.l2BlockNumber;
-
-        let host_args = self
-            .host
-            .fetch(
-                l2_block_number as u64 - self.config.proposal_interval_in_blocks,
-                l2_block_number as u64,
-                Some(l1_head_hash),
-                self.config.safe_db_fallback,
-            )
-            .await
-            .context("Failed to get host CLI args")?;
-
-        let witness_data = self.host.run(&host_args).await?;
-
-        let sp1_stdin = match self.host.witness_generator().get_sp1_stdin(witness_data) {
-            Ok(stdin) => stdin,
-            Err(e) => {
-                tracing::error!("Failed to get proof stdin: {}", e);
-                return Err(anyhow::anyhow!("Failed to get proof stdin: {}", e));
-            }
-        };
-
-        tracing::info!("Generating Range Proof");
-        let range_proof = if self.config.mock_mode {
-            tracing::info!("Using mock mode for range proof generation");
-            let (public_values, _) =
-                self.prover.network_prover.execute(get_range_elf_embedded(), &sp1_stdin).run()?;
-
-            SP1ProofWithPublicValues::create_mock_proof(
-                &self.prover.range_pk,
-                public_values,
-                SP1ProofMode::Compressed,
-                SP1_CIRCUIT_VERSION,
-            )
+        
+        // Validate proposal data
+        tracing::info!("Proposal details:");
+        tracing::info!("  Proposal ID: {}", proposal_id);
+        tracing::info!("  L1 Head: 0x{}", hex::encode(l1_head_hash));
+        tracing::info!("  L2 Block Number: {}", l2_block_number);
+        tracing::info!("  Root Claim: 0x{}", hex::encode(proposal.rootClaim));
+        tracing::info!("  Proposer: 0x{}", hex::encode(proposal.proposer));
+        tracing::info!("  Deadline: {}", proposal.deadline);
+        
+        // Step 3: Compute start/end blocks
+        let l2_start = l2_block_number as u64 - self.config.proposal_interval_in_blocks;
+        let l2_end = l2_block_number as u64;
+        
+        tracing::info!("Block range: {} - {}", l2_start, l2_end);
+        tracing::info!("Range proof interval: {} blocks", self.config.range_proof_interval);
+        
+        // Step 4: Split the span exactly like the estimator
+        let safe_db_activated = self.fetcher.is_safe_db_activated().await?;
+        let ranges: Vec<SpanBatchRange> = if safe_db_activated {
+            tracing::info!("Using safe head based range splitting");
+            split_range_based_on_safe_heads(l2_start, l2_end, self.config.range_proof_interval).await?
         } else {
-            self.prover
-                .network_prover
-                .prove(&self.prover.range_pk, &sp1_stdin)
-                .compressed()
-                .strategy(FulfillmentStrategy::Hosted)
-                .skip_simulation(true)
-                .cycle_limit(19_000_000_000)
-                .run_async()
-                .await?
+            tracing::info!("Using basic range splitting");
+            split_range_basic(l2_start, l2_end, self.config.range_proof_interval)
         };
+        
+        tracing::info!("Split into {} ranges: {:?}", ranges.len(), ranges);
+        
+        // Step 5: Generate range proofs per chunk (sequential)
+        let mut proofs = Vec::new();
+        let mut boot_infos = Vec::new();
+        
+        for (i, range) in ranges.iter().enumerate() {
+            tracing::info!("Processing range {}/{}: blocks {} - {}", i + 1, ranges.len(), range.start, range.end);
+            
+            let host_args = self
+                .host
+                .fetch(
+                    range.start,
+                    range.end,
+                    Some(l1_head_hash.into()),
+                    self.config.safe_db_fallback,
+                )
+                .await
+                .context(format!("Failed to fetch host args for range {} - {}", range.start, range.end))?;
+            
+            let witness_data = self.host.run(&host_args).await
+                .context(format!("Failed to run host for range {} - {}", range.start, range.end))?;
+            
+            let sp1_stdin = self.host.witness_generator().get_sp1_stdin(witness_data)
+                .context(format!("Failed to get SP1 stdin for range {} - {}", range.start, range.end))?;
+            
+            tracing::info!("Generating range proof for blocks {} - {}", range.start, range.end);
+            let range_proof = if self.config.mock_mode {
+                let (public_values, _) =
+                    self.prover.network_prover.execute(get_range_elf_embedded(), &sp1_stdin).run()?;
 
-        tracing::info!("Preparing Stdin for Agg Proof");
-        let proof = range_proof.proof.clone();
-        let mut public_values = range_proof.public_values.clone();
-        let boot_info: BootInfoStruct = public_values.read();
+                SP1ProofWithPublicValues::create_mock_proof(
+                    &self.prover.range_pk,
+                    public_values,
+                    SP1ProofMode::Compressed,
+                    SP1_CIRCUIT_VERSION,
+                )
+            } else {
+                self.prover
+                    .network_prover
+                    .prove(&self.prover.range_pk, &sp1_stdin)
+                    .compressed()
+                    .strategy(FulfillmentStrategy::Hosted)
+                    .skip_simulation(true)
+                    .cycle_limit(19_000_000_000)
+                    .run_async()
+                    .await?
+            };
+            
+            let mut public_values = range_proof.public_values.clone();
+            let boot_info: BootInfoStruct = public_values.read();
+            
+            boot_infos.push(boot_info);
+            proofs.push(range_proof.proof);
+        }
+        
+        tracing::info!("All {} range proofs generated successfully", ranges.len());
 
-        let headers = match fetcher
-            .get_header_preimages(&vec![boot_info.clone()], boot_info.clone().l1Head)
+        // Step 6: Aggregate once, exactly as you already do
+        tracing::info!("Preparing stdin for aggregation proof");
+        
+        // Use the first boot info's l1Head for all header fetching (they should all be the same)
+        let l1_head = boot_infos[0].l1Head;
+        
+        let headers = self.fetcher
+            .get_header_preimages(&boot_infos, l1_head)
             .await
-        {
-            Ok(headers) => headers,
-            Err(e) => {
-                tracing::error!("Failed to get header preimages: {}", e);
-                return Err(anyhow::anyhow!("Failed to get header preimages: {}", e));
-            }
-        };
+            .context("Failed to get header preimages")?;
 
-        let sp1_stdin = match get_agg_proof_stdin(
-            vec![proof],
-            vec![boot_info.clone()],
+        let agg_stdin = get_agg_proof_stdin(
+            proofs,
+            boot_infos,
             headers,
             &self.prover.range_vk,
-            boot_info.l1Head,
+            l1_head,
             self.prover_address,
-        ) {
-            Ok(s) => s,
-            Err(e) => {
-                tracing::error!("Failed to get agg proof stdin: {}", e);
-                return Err(anyhow::anyhow!("Failed to get agg proof stdin: {}", e));
-            }
-        };
+        )
+        .context("Failed to get aggregation proof stdin")?;
 
-        tracing::info!("Generating Agg Proof");
+        tracing::info!("Generating aggregation proof");
         let agg_proof = if self.config.mock_mode {
             tracing::info!("Using mock mode for aggregation proof generation");
             let (public_values, _) = self
                 .prover
                 .network_prover
-                .execute(AGGREGATION_ELF, &sp1_stdin)
+                .execute(AGGREGATION_ELF, &agg_stdin)
                 .deferred_proof_verification(false)
                 .run()?;
 
@@ -231,7 +254,7 @@ where
         } else {
             self.prover
                 .network_prover
-                .prove(&self.prover.agg_pk, &sp1_stdin)
+                .prove(&self.prover.agg_pk, &agg_stdin)
                 .groth16()
                 .run_async()
                 .await?

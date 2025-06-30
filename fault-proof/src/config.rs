@@ -53,41 +53,82 @@ pub struct RollupProposerConfig {
 
     /// The metrics port.
     pub metrics_port: u16,
+
+    /// Maximum number of blocks per range proof.
+    /// Splitting large ranges prevents hitting SP1's 16 MiB witness limit.
+    pub range_proof_interval: u64,
 }
 
 impl RollupProposerConfig {
     pub fn from_env() -> Result<Self> {
-        Ok(Self {
-            l1_rpc: env::var("L1_RPC")?.parse().expect("L1_RPC not set"),
-            l2_rpc: env::var("L2_RPC")?.parse().expect("L2_RPC not set"),
-            rollup_address: env::var("ROLLUP_ADDRESS")?.parse().expect("ROLLUP_ADDRESS not set"),
-            mock_mode: env::var("MOCK_MODE").unwrap_or("false".to_string()).parse()?,
-            fast_finality_mode: env::var("FAST_FINALITY_MODE")
-                .unwrap_or("false".to_string())
-                .parse()?,
-            proposal_interval_in_blocks: env::var("PROPOSAL_INTERVAL_IN_BLOCKS")
-                .unwrap_or("1800".to_string())
-                .parse()?,
-            fetch_interval: env::var("FETCH_INTERVAL").unwrap_or("30".to_string()).parse()?,
-            max_proposals_to_check_for_defense: env::var("MAX_PROPOSALS_TO_CHECK_FOR_DEFENSE")
-                .unwrap_or("100".to_string())
-                .parse()?,
-            enable_proposal_resolution: env::var("ENABLE_PROPOSAL_RESOLUTION")
-                .unwrap_or("true".to_string())
-                .parse()?,
-            max_proposals_to_check_for_resolution: env::var("MAX_PROPOSALS_TO_CHECK_FOR_RESOLUTION")
-                .unwrap_or("100".to_string())
-                .parse()?,
-            max_proposals_to_check_for_bond_claiming: env::var("MAX_PROPOSALS_TO_CHECK_FOR_BOND_CLAIMING")
-                .unwrap_or("100".to_string())
-                .parse()?,
-            safe_db_fallback: env::var("SAFE_DB_FALLBACK")
-                .unwrap_or("false".to_string())
-                .parse()?,
-            metrics_port: env::var("PROPOSER_METRICS_PORT")
-                .unwrap_or("9000".to_string())
-                .parse()?,
-        })
+        let l1_rpc: Url = env::var("L1_RPC")?.parse().expect("L1_RPC not set");
+        let l2_rpc: Url = env::var("L2_RPC")?.parse().expect("L2_RPC not set");
+        let rollup_address: Address = env::var("ROLLUP_ADDRESS")?.parse().expect("ROLLUP_ADDRESS not set");
+        let mock_mode: bool = env::var("MOCK_MODE").unwrap_or("false".to_string()).parse()?;
+        let fast_finality_mode: bool = env::var("FAST_FINALITY_MODE")
+            .unwrap_or("false".to_string())
+            .parse()?;
+        let proposal_interval_in_blocks: u64 = env::var("PROPOSAL_INTERVAL_IN_BLOCKS")
+            .unwrap_or("1800".to_string())
+            .parse()?;
+        let fetch_interval: u64 = env::var("FETCH_INTERVAL").unwrap_or("30".to_string()).parse()?;
+        let max_proposals_to_check_for_defense: u64 = env::var("MAX_PROPOSALS_TO_CHECK_FOR_DEFENSE")
+            .unwrap_or("100".to_string())
+            .parse()?;
+        let enable_proposal_resolution: bool = env::var("ENABLE_PROPOSAL_RESOLUTION")
+            .unwrap_or("true".to_string())
+            .parse()?;
+        let max_proposals_to_check_for_resolution: u64 = env::var("MAX_PROPOSALS_TO_CHECK_FOR_RESOLUTION")
+            .unwrap_or("100".to_string())
+            .parse()?;
+        let max_proposals_to_check_for_bond_claiming: u64 = env::var("MAX_PROPOSALS_TO_CHECK_FOR_BOND_CLAIMING")
+            .unwrap_or("100".to_string())
+            .parse()?;
+        let safe_db_fallback: bool = env::var("SAFE_DB_FALLBACK")
+            .unwrap_or("false".to_string())
+            .parse()?;
+        let metrics_port: u16 = env::var("PROPOSER_METRICS_PORT")
+            .unwrap_or("9000".to_string())
+            .parse()?;
+        let range_proof_interval: u64 = env::var("RANGE_PROOF_INTERVAL")
+            .unwrap_or("512".to_string())
+            .parse()?;
+
+        let config = Self {
+            l1_rpc,
+            l2_rpc,
+            rollup_address,
+            mock_mode,
+            fast_finality_mode,
+            proposal_interval_in_blocks,
+            fetch_interval,
+            max_proposals_to_check_for_defense,
+            enable_proposal_resolution,
+            max_proposals_to_check_for_resolution,
+            max_proposals_to_check_for_bond_claiming,
+            safe_db_fallback,
+            metrics_port,
+            range_proof_interval,
+        };
+
+        // Log all configuration values
+        tracing::info!("Rollup Proposer Configuration:");
+        tracing::info!("  L1 RPC: {}", config.l1_rpc);
+        tracing::info!("  L2 RPC: {}", config.l2_rpc);
+        tracing::info!("  Rollup Address: 0x{}", hex::encode(config.rollup_address));
+        tracing::info!("  Mock Mode: {}", config.mock_mode);
+        tracing::info!("  Fast Finality Mode: {}", config.fast_finality_mode);
+        tracing::info!("  Proposal Interval (blocks): {}", config.proposal_interval_in_blocks);
+        tracing::info!("  Fetch Interval (seconds): {}", config.fetch_interval);
+        tracing::info!("  Max Proposals to Check for Defense: {}", config.max_proposals_to_check_for_defense);
+        tracing::info!("  Enable Proposal Resolution: {}", config.enable_proposal_resolution);
+        tracing::info!("  Max Proposals to Check for Resolution: {}", config.max_proposals_to_check_for_resolution);
+        tracing::info!("  Max Proposals to Check for Bond Claiming: {}", config.max_proposals_to_check_for_bond_claiming);
+        tracing::info!("  Safe DB Fallback: {}", config.safe_db_fallback);
+        tracing::info!("  Metrics Port: {}", config.metrics_port);
+        tracing::info!("  Range Proof Interval: {}", config.range_proof_interval);
+
+        Ok(config)
     }
 }
 
