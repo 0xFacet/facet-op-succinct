@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {Rollup, AggregationOutputs} from "../src/Rollup.sol";
+import {Rollup} from "../src/Rollup.sol";
 import {ISP1Verifier} from "@sp1-contracts/src/ISP1Verifier.sol";
 
 contract MockSP1Verifier is ISP1Verifier {
