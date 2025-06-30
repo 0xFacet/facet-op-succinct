@@ -19,10 +19,6 @@ path = "bin/proposer.rs"
 name = "challenger"
 path = "bin/challenger.rs"
 
-[[example]]
-name = "test_proposal_flow"
-path = "examples/test_proposal_flow.rs"
-
 [dependencies]
 # local
 op-succinct-client-utils.workspace = true
