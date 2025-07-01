@@ -5000,7 +5000,7 @@ dependencies = [
 [[package]]
 name = "kona-cli"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "clap",
  "libc",
@@ -5012,7 +5012,7 @@ dependencies = [
 [[package]]
 name = "kona-client"
 version = "1.0.1"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5051,7 +5051,7 @@ dependencies = [
 [[package]]
 name = "kona-derive"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5072,7 +5072,7 @@ dependencies = [
 [[package]]
 name = "kona-driver"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-consensus",
  "alloy-evm",
@@ -5093,7 +5093,7 @@ dependencies = [
 [[package]]
 name = "kona-engine"
 version = "0.1.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5129,7 +5129,7 @@ dependencies = [
 [[package]]
 name = "kona-executor"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5153,7 +5153,7 @@ dependencies = [
 [[package]]
 name = "kona-genesis"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5174,7 +5174,7 @@ dependencies = [
 [[package]]
 name = "kona-hardforks"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-eips 0.15.11",
  "alloy-primitives",
@@ -5185,7 +5185,7 @@ dependencies = [
 [[package]]
 name = "kona-host"
 version = "1.0.1"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5233,7 +5233,7 @@ dependencies = [
 [[package]]
 name = "kona-interop"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5254,12 +5254,12 @@ dependencies = [
 [[package]]
 name = "kona-macros"
 version = "0.1.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 
 [[package]]
 name = "kona-mpt"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-primitives",
  "alloy-rlp",
@@ -5271,7 +5271,7 @@ dependencies = [
 [[package]]
 name = "kona-p2p"
 version = "0.1.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-consensus",
  "alloy-primitives",
@@ -5304,7 +5304,7 @@ dependencies = [
 [[package]]
 name = "kona-preimage"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-primitives",
  "async-channel",
@@ -5318,7 +5318,7 @@ dependencies = [
 [[package]]
 name = "kona-proof"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5354,7 +5354,7 @@ dependencies = [
 [[package]]
 name = "kona-proof-interop"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5386,7 +5386,7 @@ dependencies = [
 [[package]]
 name = "kona-protocol"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloc-no-stdlib",
  "alloy-consensus",
@@ -5415,7 +5415,7 @@ dependencies = [
 [[package]]
 name = "kona-providers-alloy"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5444,7 +5444,7 @@ dependencies = [
 [[package]]
 name = "kona-registry"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-chains",
  "alloy-primitives",
@@ -5458,7 +5458,7 @@ dependencies = [
 [[package]]
 name = "kona-rpc"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-eips 0.15.11",
  "alloy-primitives",
@@ -5483,7 +5483,7 @@ dependencies = [
 [[package]]
 name = "kona-serde"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "alloy-primitives",
  "serde",
@@ -5493,7 +5493,7 @@ dependencies = [
 [[package]]
 name = "kona-std-fpvm"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "async-trait",
  "buddy_system_allocator",
@@ -5505,7 +5505,7 @@ dependencies = [
 [[package]]
 name = "kona-std-fpvm-proc"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
 dependencies = [
  "cfg-if",
  "kona-std-fpvm",
@@ -6989,7 +6989,7 @@ dependencies = [
 [[package]]
 name = "op-revm"
 version = "3.0.2"
-source = "git+https://github.com/0xFacet/facet-revm?branch=facet-initial-changes#1f98915f913a75d2ddd4bdfffbcd75fec87aa303"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
 dependencies = [
  "auto_impl",
  "once_cell",
@@ -8811,7 +8811,7 @@ checksum = "95325155c684b1c89f7765e30bc1c42e4a6da51ca513615660cb8a62ef9a88e3"
 [[package]]
 name = "revm"
 version = "22.0.1"
-source = "git+https://github.com/0xFacet/facet-revm?branch=facet-initial-changes#1f98915f913a75d2ddd4bdfffbcd75fec87aa303"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
 dependencies = [
  "revm-bytecode",
  "revm-context",
@@ -8829,7 +8829,7 @@ dependencies = [
 [[package]]
 name = "revm-bytecode"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?branch=facet-initial-changes#1f98915f913a75d2ddd4bdfffbcd75fec87aa303"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
 dependencies = [
  "bitvec",
  "phf",
@@ -8840,7 +8840,7 @@ dependencies = [
 [[package]]
 name = "revm-context"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?branch=facet-initial-changes#1f98915f913a75d2ddd4bdfffbcd75fec87aa303"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
 dependencies = [
  "cfg-if",
  "derive-where",
@@ -8855,7 +8855,7 @@ dependencies = [
 [[package]]
 name = "revm-context-interface"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?branch=facet-initial-changes#1f98915f913a75d2ddd4bdfffbcd75fec87aa303"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
 dependencies = [
  "alloy-eip2930",
  "alloy-eip7702",
@@ -8869,7 +8869,7 @@ dependencies = [
 [[package]]
 name = "revm-database"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?branch=facet-initial-changes#1f98915f913a75d2ddd4bdfffbcd75fec87aa303"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
 dependencies = [
  "alloy-eips 0.14.0",
  "revm-bytecode",
@@ -8882,7 +8882,7 @@ dependencies = [
 [[package]]
 name = "revm-database-interface"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?branch=facet-initial-changes#1f98915f913a75d2ddd4bdfffbcd75fec87aa303"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
 dependencies = [
  "auto_impl",
  "revm-primitives",
@@ -8893,7 +8893,7 @@ dependencies = [
 [[package]]
 name = "revm-handler"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?branch=facet-initial-changes#1f98915f913a75d2ddd4bdfffbcd75fec87aa303"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
 dependencies = [
  "auto_impl",
  "revm-bytecode",
@@ -8910,7 +8910,7 @@ dependencies = [
 [[package]]
 name = "revm-inspector"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?branch=facet-initial-changes#1f98915f913a75d2ddd4bdfffbcd75fec87aa303"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
 dependencies = [
  "auto_impl",
  "revm-context",
@@ -8926,7 +8926,7 @@ dependencies = [
 [[package]]
 name = "revm-interpreter"
 version = "18.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?branch=facet-initial-changes#1f98915f913a75d2ddd4bdfffbcd75fec87aa303"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
 dependencies = [
  "revm-bytecode",
  "revm-context-interface",
@@ -8937,7 +8937,7 @@ dependencies = [
 [[package]]
 name = "revm-precompile"
 version = "19.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?branch=facet-initial-changes#1f98915f913a75d2ddd4bdfffbcd75fec87aa303"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
 dependencies = [
  "ark-bls12-381",
  "ark-bn254",
@@ -8963,7 +8963,7 @@ dependencies = [
 [[package]]
 name = "revm-primitives"
 version = "18.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?branch=facet-initial-changes#1f98915f913a75d2ddd4bdfffbcd75fec87aa303"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
 dependencies = [
  "alloy-primitives",
  "enumn",
@@ -8973,7 +8973,7 @@ dependencies = [
 [[package]]
 name = "revm-state"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?branch=facet-initial-changes#1f98915f913a75d2ddd4bdfffbcd75fec87aa303"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
 dependencies = [
  "bitflags 2.9.1",
  "revm-bytecode",
@@ -12814,4 +12814,4 @@ dependencies = [
 [[patch.unused]]
 name = "kona-comp"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=facet-initial-changes#7a9cbf73e924f82ccdfc57ac2930a7ab8554f6df"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
