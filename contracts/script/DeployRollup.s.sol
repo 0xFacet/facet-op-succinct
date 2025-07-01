@@ -45,8 +45,8 @@ contract DeployRollup is Script {
             _rangeCommit:      rangeCommit
         });
 
-        if (vm.envOr("PERMISSIONLESS_MODE", false)) {
-            rollup.setProposer(address(0), true); // TODO: transfer to real owner
+        if (vm.envBool("PERMISSIONLESS_MODE")) {
+            rollup.setProposer(address(0), true);
             console.log("Configured permissionless mode");
         } else {
             string memory proposersStr = vm.envString("PROPOSER_ADDRESSES");
@@ -61,6 +61,9 @@ contract DeployRollup is Script {
                 }
             }
         }
+
+        address finalOwner = vm.envAddress("ROLLUP_OWNER");
+        rollup.transferOwnership(finalOwner);
 
         console.log("Rollup deployed at:", address(rollup));
 

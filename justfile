@@ -93,57 +93,69 @@ upgrade-l2oo l1_rpc admin_pk etherscan_api_key="":
   cd contracts && forge script script/validity/OPSuccinctUpgrader.s.sol:OPSuccinctUpgrader  --rpc-url $L1_RPC --private-key $ADMIN_PK $VERIFY --broadcast --slow
 
 # Deploy OPSuccinct FDG contracts
-deploy-contracts env_file=".env":
+deploy-contracts network env_file=".env":
     #!/usr/bin/env bash
     set -euo pipefail
     
-    # Load environment variables from project root
-    source {{env_file}}
-    
-    # Load environment variables from contracts directory if it exists
-    if [ -f "contracts/.env" ]; then
-        source contracts/.env
-    fi
-    
-    # Check if required environment variables are set
-    if [ -z "${RPC_URL:-}" ] && [ -z "${L1_RPC:-}" ]; then
-        echo "Error: Neither RPC_URL nor L1_RPC environment variable is set"
+    # Validate network argument
+    if [ "{{network}}" != "sepolia" ] && [ "{{network}}" != "mainnet" ]; then
+        echo "Error: network must be either 'sepolia' or 'mainnet'"
         exit 1
     fi
     
-    if [ -z "${PRIVATE_KEY:-}" ]; then
-        echo "Error: PRIVATE_KEY environment variable is not set"
+    # Load environment variables from contracts directory based on network
+    CONTRACTS_ENV_FILE="contracts/.env.{{network}}"
+    if [ -f "$CONTRACTS_ENV_FILE" ]; then
+        echo "Loading config from $CONTRACTS_ENV_FILE"
+        # Use a subshell to ensure clean environment
+        (
+            source "$CONTRACTS_ENV_FILE"
+            
+            # Check if required environment variables are set
+            if [ -z "${RPC_URL:-}" ] && [ -z "${L1_RPC:-}" ]; then
+                echo "Error: Neither RPC_URL nor L1_RPC environment variable is set in $CONTRACTS_ENV_FILE"
+                exit 1
+            fi
+            
+            if [ -z "${PRIVATE_KEY:-}" ]; then
+                echo "Error: PRIVATE_KEY environment variable is not set in $CONTRACTS_ENV_FILE"
+                exit 1
+            fi
+            
+            # Use RPC_URL if set, otherwise fall back to L1_RPC
+            RPC_URL_TO_USE="${RPC_URL:-$L1_RPC}"
+            
+            echo "Deploying FDG contracts to {{network}}..."
+            echo "Using RPC URL: $RPC_URL_TO_USE"
+            
+            # Change to contracts directory
+            cd contracts
+            
+            # Install dependencies
+            echo "Installing forge dependencies..."
+            forge install
+            
+            # Build contracts
+            echo "Building contracts..."
+            forge build
+            
+            # Run deployment script
+            echo "Running deployment script..."
+            forge script script/DeployRollup.s.sol \
+                --broadcast \
+                --slow \
+                --verify \
+                --rpc-url "$RPC_URL_TO_USE" \
+                --private-key "$PRIVATE_KEY"
+            
+            echo "FDG contract deployment to {{network}} complete!"
+        )
+    else
+        echo "Error: $CONTRACTS_ENV_FILE not found"
+        echo "Please create the network-specific config file for {{network}}"
         exit 1
     fi
     
-    # Use RPC_URL if set, otherwise fall back to L1_RPC
-    RPC_URL_TO_USE="${RPC_URL:-$L1_RPC}"
-    
-    echo "Using RPC URL: $RPC_URL_TO_USE"
-    echo "Deploying FDG contracts..."
-    
-    # Change to contracts directory
-    cd contracts
-    
-    # Install dependencies
-    echo "Installing forge dependencies..."
-    forge install
-    
-    # Build contracts
-    echo "Building contracts..."
-    forge build
-    
-    # Run deployment script
-    echo "Running deployment script..."
-    forge script script/DeployRollup.s.sol \
-        --broadcast \
-        --slow \
-        --verify \
-        --rpc-url "$RPC_URL_TO_USE" \
-        --private-key "$PRIVATE_KEY"
-    
-    echo "FDG contract deployment complete!"
-
 # Deploy mock verifier
 deploy-mock-verifier env_file=".env":
     #!/usr/bin/env bash
