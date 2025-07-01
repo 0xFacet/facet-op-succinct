@@ -1,20 +1,7 @@
 name: PR
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches:
-      - "**"
-    paths:
-      - "crates/**"
-      - "programs/**"
-      - "scripts/**"
-      - "utils/**"
-      - "fault-proof/**"
-      - "validity/**"
-      - "Cargo.toml"
-  merge_group:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

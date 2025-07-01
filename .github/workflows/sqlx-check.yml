@@ -1,13 +1,6 @@
 name: SQLx Query Check
 
 on:
-  pull_request:
-    paths:
-      - '**/*.rs'
-      - '**/*.sql'
-      - 'sqlx-data.json'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
   workflow_dispatch:
 
 jobs:

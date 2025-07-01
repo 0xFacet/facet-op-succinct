@@ -2,6 +2,9 @@ name: Build OP Succinct Lite Docker Images
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   build-proposer:
@@ -39,6 +42,7 @@ jobs:
         with:
           images: ghcr.io/0xfacet/facet-op-succinct/lite-proposer
           tags: |
+            type=ref,event=tag
             type=sha
             latest
 
@@ -71,7 +75,7 @@ jobs:
 
   build-challenger:
     name: Build OP Succinct Lite Challenger
-    runs-on: ubuntu-latest-l
+    runs-on: ubuntu-latest-xl
       
     env:
       DOCKER_BUILDKIT: 1
@@ -104,6 +108,7 @@ jobs:
         with:
           images: ghcr.io/0xfacet/facet-op-succinct/lite-challenger
           tags: |
+            type=ref,event=tag
             type=sha
             latest
 

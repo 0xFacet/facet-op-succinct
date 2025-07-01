@@ -1,12 +1,6 @@
 name: Foundry Test
 
 on:
-  pull_request:
-    branches:
-      - "**"
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 env:
