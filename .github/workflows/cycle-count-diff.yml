@@ -1,9 +1,7 @@
 name: Cycle Count Diff
 
 on:
-  pull_request:
-    paths:
-      - 'elf/range-elf-embedded'
+  workflow_dispatch:
 
 jobs:
   cycle-count-diff:

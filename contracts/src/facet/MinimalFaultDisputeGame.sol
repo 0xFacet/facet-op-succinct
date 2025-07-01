@@ -14,7 +14,7 @@ import {
     LibClock,
     OutputRoot,
     Timestamp
-} from "src/dispute/lib/Types.sol";
+} from "../../lib/optimism/packages/contracts-bedrock/src/dispute/lib/Types.sol";
 import {
     AlreadyInitialized,
     AnchorRootNotFound,
@@ -28,23 +28,25 @@ import {
     InvalidBondDistributionMode,
     NoCreditToClaim,
     UnexpectedRootClaim
-} from "src/dispute/lib/Errors.sol";
-import "src/fp/lib/Errors.sol";
-import {AggregationOutputs} from "src/lib/Types.sol";
+} from "../../lib/optimism/packages/contracts-bedrock/src/dispute/lib/Errors.sol";
+import "../../src/fp/lib/Errors.sol";
+import {AggregationOutputs} from "../../src/lib/Types.sol";
 
 // Interfaces
-import {ISemver} from "interfaces/universal/ISemver.sol";
-import {IDisputeGameFactory} from "interfaces/dispute/IDisputeGameFactory.sol";
-import {IDisputeGame} from "interfaces/dispute/IDisputeGame.sol";
+import {ISemver} from "../../lib/optimism/packages/contracts-bedrock/interfaces/universal/ISemver.sol";
+import {IDisputeGame} from "../../lib/optimism/packages/contracts-bedrock/interfaces/dispute/IDisputeGame.sol";
 import {ISP1Verifier} from "@sp1-contracts/src/ISP1Verifier.sol";
-import {IAnchorStateRegistry} from "interfaces/dispute/IAnchorStateRegistry.sol";
 
 // Contracts
-import {AccessManager} from "src/fp/AccessManager.sol";
+import {MinimalDisputeGameFactory} from "./MinimalDisputeGameFactory.sol";
+import { MinimalAnchorRegistry } from "./MinimalAnchorRegistry.sol";
+import {MinimalAccessManager} from "./MinimalAccessManager.sol";
 
-/// @title OPSuccinctFaultDisputeGame
+/// @title MinimalFaultDisputeGame
 /// @notice An implementation of the `IFaultDisputeGame` interface.
-contract OPSuccinctFaultDisputeGame is Clone, ISemver, IDisputeGame {
+contract MinimalFaultDisputeGame is Clone, ISemver {
+    event Resolved(GameStatus indexed status);
+    
     ////////////////////////////////////////////////////////////////
     //                         Enums                              //
     ////////////////////////////////////////////////////////////////
@@ -105,7 +107,7 @@ contract OPSuccinctFaultDisputeGame is Clone, ISemver, IDisputeGame {
     GameType internal immutable GAME_TYPE;
 
     /// @notice The dispute game factory.
-    IDisputeGameFactory internal immutable DISPUTE_GAME_FACTORY;
+    MinimalDisputeGameFactory internal immutable DISPUTE_GAME_FACTORY;
 
     /// @notice The SP1 verifier.
     ISP1Verifier internal immutable SP1_VERIFIER;
@@ -126,10 +128,10 @@ contract OPSuccinctFaultDisputeGame is Clone, ISemver, IDisputeGame {
     uint256 internal immutable CHALLENGER_BOND;
 
     /// @notice The anchor state registry.
-    IAnchorStateRegistry internal immutable ANCHOR_STATE_REGISTRY;
+    MinimalAnchorRegistry internal immutable ANCHOR_STATE_REGISTRY;
 
     /// @notice The access manager.
-    AccessManager internal immutable ACCESS_MANAGER;
+    MinimalAccessManager internal immutable ACCESS_MANAGER;
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
@@ -178,14 +180,14 @@ contract OPSuccinctFaultDisputeGame is Clone, ISemver, IDisputeGame {
     constructor(
         Duration _maxChallengeDuration,
         Duration _maxProveDuration,
-        IDisputeGameFactory _disputeGameFactory,
+        MinimalDisputeGameFactory _disputeGameFactory,
         ISP1Verifier _sp1Verifier,
         bytes32 _rollupConfigHash,
         bytes32 _aggregationVkey,
         bytes32 _rangeVkeyCommitment,
         uint256 _challengerBond,
-        IAnchorStateRegistry _anchorStateRegistry,
-        AccessManager _accessManager
+        MinimalAnchorRegistry _anchorStateRegistry,
+        MinimalAccessManager _accessManager
     ) {
         // Set up initial game state.
         GAME_TYPE = GameType.wrap(1);
@@ -254,22 +256,14 @@ contract OPSuccinctFaultDisputeGame is Clone, ISemver, IDisputeGame {
             // For subsequent games, get the parent game's information
             (,, IDisputeGame proxy) = DISPUTE_GAME_FACTORY.gameAtIndex(parentIndex());
 
-            // We perform a subset of AnchorStateRegistry.isGameProper() checks plus isGameRespected():
-            // 1. isGameRespected(): Verifies the parent game was respected when it was created.
-            //    There's only one respected game type in an AnchorStateRegistry at a time.
-            // 2. isGameRetired(): Ensures the game hasn't been retroactively marked as retired.
-            // 3. isGameBlacklisted(): Confirms the parent game isn't blacklisted.
-            // Note: isGameRegistered() check is skipped since the parent game is coming directly from factory.
-            if (
-                !ANCHOR_STATE_REGISTRY.isGameRespected(proxy) || ANCHOR_STATE_REGISTRY.isGameBlacklisted(proxy)
-                    || ANCHOR_STATE_REGISTRY.isGameRetired(proxy)
-            ) {
+            // For the minimal version, we just check if the parent game is proper
+            if (!ANCHOR_STATE_REGISTRY.isGameProper(IDisputeGame(address(proxy)))) {
                 revert InvalidParentGame();
             }
 
             startingOutputRoot = OutputRoot({
-                l2BlockNumber: OPSuccinctFaultDisputeGame(address(proxy)).l2BlockNumber(),
-                root: Hash.wrap(OPSuccinctFaultDisputeGame(address(proxy)).rootClaim().raw())
+                l2BlockNumber: MinimalFaultDisputeGame(address(proxy)).l2BlockNumber(),
+                root: Hash.wrap(MinimalFaultDisputeGame(address(proxy)).rootClaim().raw())
             });
 
             // INVARIANT: The parent game must be a valid game.
@@ -277,7 +271,7 @@ contract OPSuccinctFaultDisputeGame is Clone, ISemver, IDisputeGame {
         } else {
             // When there is no parent game, the starting output root is the anchor state for the game type.
             (startingOutputRoot.root, startingOutputRoot.l2BlockNumber) =
-                IAnchorStateRegistry(ANCHOR_STATE_REGISTRY).anchors(GAME_TYPE);
+                ANCHOR_STATE_REGISTRY.getAnchorRoot();
         }
 
         // Do not allow the game to be initialized if the root claim corresponds to a block at or before the
@@ -305,9 +299,8 @@ contract OPSuccinctFaultDisputeGame is Clone, ISemver, IDisputeGame {
         // Set the game's starting timestamp
         createdAt = Timestamp.wrap(uint64(block.timestamp));
 
-        // Set whether the game type was respected when the game was created.
-        wasRespectedGameTypeWhenCreated =
-            GameType.unwrap(ANCHOR_STATE_REGISTRY.respectedGameType()) == GameType.unwrap(GAME_TYPE);
+        // For minimal version, we always consider the game type as respected
+        wasRespectedGameTypeWhenCreated = true;
     }
 
     /// @notice The L2 block number for which this game is proposing an output root.
@@ -640,7 +633,7 @@ contract OPSuccinctFaultDisputeGame is Clone, ISemver, IDisputeGame {
     }
 
     /// @notice Returns the dispute game factory.
-    function disputeGameFactory() external view returns (IDisputeGameFactory disputeGameFactory_) {
+    function disputeGameFactory() external view returns (MinimalDisputeGameFactory disputeGameFactory_) {
         disputeGameFactory_ = DISPUTE_GAME_FACTORY;
     }
 
@@ -650,12 +643,12 @@ contract OPSuccinctFaultDisputeGame is Clone, ISemver, IDisputeGame {
     }
 
     /// @notice Returns the anchor state registry contract.
-    function anchorStateRegistry() external view returns (IAnchorStateRegistry registry_) {
+    function anchorStateRegistry() external view returns (MinimalAnchorRegistry registry_) {
         registry_ = ANCHOR_STATE_REGISTRY;
     }
 
     /// @notice Returns the access manager contract.
-    function accessManager() external view returns (AccessManager accessManager_) {
+    function accessManager() external view returns (MinimalAccessManager accessManager_) {
         accessManager_ = ACCESS_MANAGER;
     }
 }

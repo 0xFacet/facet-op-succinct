@@ -20,10 +20,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH=/root/.cargo/bin:$PATH
 RUN rustup install stable && rustup default stable
 
-# Install SP1
-# RUN curl -L https://sp1.succinct.xyz | bash && \
-#     ~/.sp1/bin/sp1up && \
-#     ~/.sp1/bin/cargo-prove prove --version
+# Skip SP1 installation - not needed for runtime since ELFs are pre-built
 
 # Build stage
 FROM rust-base AS builder
@@ -31,9 +28,9 @@ FROM rust-base AS builder
 # Copy the entire workspace
 COPY . .
 
-# Build the challenger binary
+# Build the proposer binary
+RUN cargo build --release -p op-succinct-fp --bin proposer
 
-RUN cargo build --release -p op-succinct-fp --bin challenger
 # Runtime stage (minimal image)
 FROM ubuntu:24.04
 
@@ -45,8 +42,13 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the built challenger binary
-COPY --from=builder /usr/src/app/target/release/challenger /usr/local/bin/
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH=/root/.cargo/bin:$PATH
+RUN rustup install stable && rustup default stable
+    
+# Copy the built proposer binary
+COPY --from=builder /usr/src/app/target/release/proposer /usr/local/bin/
 
 # Set the command
-CMD ["challenger"]
+CMD ["proposer"]

@@ -20,10 +20,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH=/root/.cargo/bin:$PATH
 RUN rustup install stable && rustup default stable
 
-# Install SP1
-RUN curl -L https://sp1.succinct.xyz | bash && \
-    ~/.sp1/bin/sp1up && \
-    ~/.sp1/bin/cargo-prove prove --version
+# Skip SP1 installation - not needed for runtime since ELFs are pre-built
 
 # Build stage
 FROM rust-base AS builder
@@ -32,8 +29,7 @@ FROM rust-base AS builder
 COPY . .
 
 # Build the proposer binary
-RUN cargo build --release --bin proposer
-
+RUN cargo build --release -p op-succinct-fp --bin proposer
 # Runtime stage (minimal image)
 FROM ubuntu:24.04
 

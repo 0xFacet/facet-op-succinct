@@ -82,8 +82,22 @@ async fn execute_blocks_and_write_stats_csv<H: OPSuccinctHost>(
     let stdins = futures::future::join_all(handles)
         .await
         .into_iter()
-        .map(|r| r.unwrap())
-        .collect::<Vec<_>>();
+        .map(|r| match r {
+            Ok(stdin) => Ok(stdin),
+            Err(e) => {
+                eprintln!("Failed to generate witness data: {:?}", e);
+                if let Ok(panic_info) = e.try_into_panic() {
+                    if let Some(msg) = panic_info.downcast_ref::<String>() {
+                        eprintln!("Panic message: {}", msg);
+                    } else if let Some(msg) = panic_info.downcast_ref::<&str>() {
+                        eprintln!("Panic message: {}", msg);
+                    }
+                }
+                Err("Failed to generate witness data")
+            }
+        })
+        .collect::<Result<Vec<_>, _>>()
+        .expect("Failed to generate witness data for one or more blocks");
 
     let execution_inputs = stdins.iter().zip(block_data.iter()).collect::<Vec<_>>();
 
