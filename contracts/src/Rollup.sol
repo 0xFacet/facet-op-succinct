@@ -217,22 +217,6 @@ contract Rollup is Ownable, ReentrancyGuard {
         emit ProposalSubmitted(proposalId, parentId, msg.sender, root, l2BlockNumber);
     }
     
-    function proposalAuthorized(address proposer, uint256 proposedL2BlockNumber) public view returns (bool) {
-        return allowedProposer(proposer) ||
-            (l2BlockAge(proposedL2BlockNumber) > FALLBACK_TIMEOUT_SECS);
-    }
-    
-    function l2BlockAge(uint256 l2BlockNumber) public view returns (uint256) {
-        return block.timestamp - computeL2Timestamp(l2BlockNumber);
-    }
-    
-    /// @notice Returns the L2 timestamp corresponding to a given L2 block number.
-    /// @param _l2BlockNumber The L2 block number of the target block.
-    /// @return L2 timestamp of the given block.
-    function computeL2Timestamp(uint256 _l2BlockNumber) public view returns (uint256) {
-        return L2_START_TIMESTAMP + ((_l2BlockNumber - proposals[0].l2BlockNumber) * L2_BLOCK_TIME);
-    }
-
     function challengeProposal(uint256 id) external payable onlyIfGameNotOver(id) {
         Proposal storage p = proposals[id];
         if (p.proposalStatus != ProposalStatus.Unchallenged) revert AlreadyChallenged();
@@ -282,9 +266,24 @@ contract Rollup is Ownable, ReentrancyGuard {
         _;
     }
 
+    /*//////////////////////////////////////////////////////////////
+                          UTILITY FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
     function gameOver(uint256 proposalId) public view returns (bool) {
         Proposal storage p = proposals[proposalId];
         return p.deadline < block.timestamp || p.prover != address(0);
+    }
+
+    function l2BlockAge(uint256 l2BlockNumber) public view returns (uint256) {
+        return block.timestamp - computeL2Timestamp(l2BlockNumber);
+    }
+    
+    /// @notice Returns the L2 timestamp corresponding to a given L2 block number.
+    /// @param _l2BlockNumber The L2 block number of the target block.
+    /// @return L2 timestamp of the given block.
+    function computeL2Timestamp(uint256 _l2BlockNumber) public view returns (uint256) {
+        return L2_START_TIMESTAMP + ((_l2BlockNumber - proposals[0].l2BlockNumber) * L2_BLOCK_TIME);
     }
 
     function resolveProposal(uint256 id) external onlyIfGameOver(id) {
@@ -365,7 +364,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     }
     
     /*//////////////////////////////////////////////////////////////
-                           PROPOSER PERMISSIONS
+                    PERMISSIONS & AUTHORIZATION
     //////////////////////////////////////////////////////////////*/
 
     function setProposer(address proposer, bool allowed) external onlyOwner {
@@ -375,6 +374,11 @@ contract Rollup is Ownable, ReentrancyGuard {
 
     function allowedProposer(address a) public view returns (bool) {
         return whitelistedProposer[a] || whitelistedProposer[address(0)];
+    }
+
+    function proposalAuthorized(address proposer, uint256 proposedL2BlockNumber) public view returns (bool) {
+        return allowedProposer(proposer) ||
+            (l2BlockAge(proposedL2BlockNumber) > FALLBACK_TIMEOUT_SECS);
     }
 
     /*//////////////////////////////////////////////////////////////
