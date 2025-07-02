@@ -5,7 +5,7 @@ sol! {
     #[derive(Debug, PartialEq)]
     contract Rollup {
         // Events
-        event ProposalSubmitted(uint256 indexed proposalId, address indexed proposer, bytes32 root, uint128 l2BlockNumber);
+        event ProposalSubmitted(uint256 indexed proposalId, uint256 indexed parentId, address indexed proposer, bytes32 root, uint128 l2BlockNumber);
         event ProposalChallenged(uint256 indexed proposalId, address indexed challenger);
         event ProposalProven(uint256 indexed proposalId, address indexed prover);
         event ProposalResolved(uint256 indexed proposalId, ResolutionStatus status);
@@ -44,6 +44,9 @@ sol! {
         uint256 public immutable CHALLENGER_BOND;
         uint256 public immutable PROPOSER_BOND;
         uint256 public immutable FALLBACK_TIMEOUT_SECS;
+        uint256 public immutable PROPOSAL_INTERVAL;
+        uint256 public immutable L2_START_TIMESTAMP;
+        uint256 public immutable L2_BLOCK_TIME;
 
         address public immutable VERIFIER;
         bytes32 public immutable ROLLUP_CONFIG_HASH;
@@ -87,7 +90,7 @@ sol! {
         function needsDefense(uint256 proposalId) external view returns (bool);
 
         // Core functions
-        function submitProposal(bytes32 root, uint128 l2BlockNumber) external payable returns (uint256 proposalId);
+        function submitProposal(bytes32 root, uint128 l2BlockNumber, uint32 parentIndex) external payable returns (uint256 proposalId);
         function challengeProposal(uint256 id) external payable;
         function proveProposal(uint256 id, bytes calldata proof) external;
         function resolveProposal(uint256 id) external;

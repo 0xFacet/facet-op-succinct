@@ -21,9 +21,6 @@ pub struct RollupProposerConfig {
     /// Whether to use fast finality mode.
     pub fast_finality_mode: bool,
 
-    /// The interval in blocks between proposing new games.
-    pub proposal_interval_in_blocks: u64,
-
     /// The interval in seconds between checking for new proposals and game resolution.
     /// During each interval, the proposer:
     /// 1. Checks the safe L2 head block number
@@ -71,9 +68,6 @@ impl RollupProposerConfig {
         let fast_finality_mode: bool = env::var("FAST_FINALITY_MODE")
             .unwrap_or("false".to_string())
             .parse()?;
-        let proposal_interval_in_blocks: u64 = env::var("PROPOSAL_INTERVAL_IN_BLOCKS")
-            .unwrap_or("1800".to_string())
-            .parse()?;
         let fetch_interval: u64 = env::var("FETCH_INTERVAL").unwrap_or("30".to_string()).parse()?;
         let max_proposals_to_check_for_defense: u64 = env::var("MAX_PROPOSALS_TO_CHECK_FOR_DEFENSE")
             .unwrap_or("100".to_string())
@@ -106,7 +100,6 @@ impl RollupProposerConfig {
             rollup_address,
             mock_mode,
             fast_finality_mode,
-            proposal_interval_in_blocks,
             fetch_interval,
             max_proposals_to_check_for_defense,
             enable_proposal_resolution,
@@ -125,7 +118,6 @@ impl RollupProposerConfig {
         tracing::info!("  Rollup Address: 0x{}", hex::encode(config.rollup_address));
         tracing::info!("  Mock Mode: {}", config.mock_mode);
         tracing::info!("  Fast Finality Mode: {}", config.fast_finality_mode);
-        tracing::info!("  Proposal Interval (blocks): {}", config.proposal_interval_in_blocks);
         tracing::info!("  Fetch Interval (seconds): {}", config.fetch_interval);
         tracing::info!("  Max Proposals to Check for Defense: {}", config.max_proposals_to_check_for_defense);
         tracing::info!("  Enable Proposal Resolution: {}", config.enable_proposal_resolution);
