@@ -1227,4 +1227,85 @@ contract RollupTest is Test {
         );
         assertGt(id2, 0);
     }
+    
+    function testPermissionlessCatchUpAfterLongInactivity() public {
+        // Scenario: Permissioned proposer stops proposing for 1+ days
+        // Permissionless proposers should be able to catch up, but not go past the 1-day mark
+        
+        // Start from genesis at block 1000
+        // Initial warp in setUp() sets block.timestamp to 10,000
+        // L2 genesis block 1000 has timestamp 1000
+        // Set time to be 1 day + 1 hour after current time
+        // FALLBACK_TIMEOUT = 86400 (1 day)
+        uint256 oneDayOneHour = FALLBACK_TIMEOUT + 3600;
+        vm.warp(block.timestamp + oneDayOneHour);
+        
+        address permissionlessUser = address(0x999);
+        vm.deal(permissionlessUser, 100 * PROPOSER_BOND); // Need enough for ~62 proposals
+        
+        // At this time, which blocks are old enough?
+        // current_time = 10,000 + 86,400 + 3,600 = 100,000
+        // For permissionless: l2BlockAge > FALLBACK_TIMEOUT
+        // So: current_time - l2_timestamp > 86,400
+        // So: l2_timestamp < 100,000 - 86,400 = 13,600
+        
+        // What L2 block has timestamp 13,600?
+        // l2_timestamp = 1000 + (block - 1000) * 2
+        // 13,600 = 1000 + (block - 1000) * 2
+        // 12,600 = (block - 1000) * 2
+        // block = 7,300
+        
+        // So blocks up to 7,300 are old enough for permissionless
+        
+        vm.startPrank(permissionlessUser);
+        
+        // Submit a few proposals to show catch-up works
+        uint256 p1 = rollup.submitProposal{value: PROPOSER_BOND}(
+            bytes32(uint256(1)),
+            1100,
+            0
+        );
+        
+        // Jump ahead significantly (still within permissionless window)
+        uint256 lastProposal = p1;
+        uint256 currentBlock = 1100;
+        
+        // Advance to block 7200 (still permissionless)
+        while (currentBlock < 7200) {
+            currentBlock += 100;
+            lastProposal = rollup.submitProposal{value: PROPOSER_BOND}(
+                bytes32(currentBlock),
+                uint128(currentBlock),
+                uint32(lastProposal)
+            );
+        }
+        
+        // Now at block 7200, but CAN'T go to 7300 (too recent)
+        // Block 7300 timestamp = 1000 + 6300 * 2 = 13,600
+        // Age = 100,000 - 13,600 = 86,400
+        // This equals FALLBACK_TIMEOUT, so NOT > FALLBACK_TIMEOUT
+        vm.expectRevert(Rollup.BadAuth.selector);
+        rollup.submitProposal{value: PROPOSER_BOND}(
+            bytes32(uint256(7300)),
+            7300,
+            uint32(lastProposal)
+        );
+        
+        vm.stopPrank();
+        
+        // But whitelisted proposer CAN propose block 7300
+        vm.prank(proposer);
+        uint256 whitelistedProposal = rollup.submitProposal{value: PROPOSER_BOND}(
+            bytes32(uint256(7300)),
+            7300,
+            uint32(lastProposal)
+        );
+        assertGt(whitelistedProposal, 0);
+        
+        // This demonstrates:
+        // 1. After 1+ days of inactivity, permissionless users can catch up
+        // 2. They can propose blocks that are > 1 day old (up to block 7200)
+        // 3. They cannot propose blocks <= 1 day old (block 7300 fails)
+        // 4. Only whitelisted proposers can propose recent blocks
+    }
 }

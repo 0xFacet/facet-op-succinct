@@ -5,7 +5,7 @@ sol! {
     #[derive(Debug, PartialEq)]
     contract Rollup {
         // Events
-        event ProposalSubmitted(uint256 indexed proposalId, address indexed proposer, bytes32 root, uint128 l2BlockNumber);
+        event ProposalSubmitted(uint256 indexed proposalId, uint256 indexed parentId, address indexed proposer, bytes32 root, uint128 l2BlockNumber);
         event ProposalChallenged(uint256 indexed proposalId, address indexed challenger);
         event ProposalProven(uint256 indexed proposalId, address indexed prover);
         event ProposalResolved(uint256 indexed proposalId, ResolutionStatus status);

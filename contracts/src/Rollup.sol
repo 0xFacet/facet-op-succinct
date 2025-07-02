@@ -46,7 +46,7 @@ contract Rollup is Ownable, ReentrancyGuard {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event ProposalSubmitted(uint256 indexed proposalId, address indexed proposer, bytes32 root, uint128 l2BlockNumber);
+    event ProposalSubmitted(uint256 indexed proposalId, uint256 indexed parentId, address indexed proposer, bytes32 root, uint128 l2BlockNumber);
     event ProposalChallenged(uint256 indexed proposalId, address indexed challenger);
     event ProposalProven(uint256 indexed proposalId, address indexed prover);
     event ProposalResolved(uint256 indexed proposalId, ResolutionStatus status);
@@ -214,7 +214,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         p.deadline = uint32(block.timestamp + MAX_CHALLENGE_SECS);
         p.proposer = msg.sender;
 
-        emit ProposalSubmitted(proposalId, msg.sender, root, l2BlockNumber);
+        emit ProposalSubmitted(proposalId, parentId, msg.sender, root, l2BlockNumber);
     }
     
     function proposalAuthorized(address proposer, uint256 proposedL2BlockNumber) public view returns (bool) {
