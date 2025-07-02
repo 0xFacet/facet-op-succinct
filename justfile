@@ -17,12 +17,17 @@ get-starting-root env_file=".env":
       echo "L2_NODE_RPC not set in {{env_file}}"
       exit 1
   fi
+  
+  if [ -z "$L2_RPC" ]; then
+      echo "L2_RPC not set in {{env_file}}"
+      exit 1
+  fi
 
   # Convert block number to hex and remove '0x' prefix
   BLOCK_HEX=$(cast --to-hex $STARTING_L2_BLOCK_NUMBER | sed 's/0x//')
 
-  # Construct the JSON RPC request
-  JSON_DATA='{
+  # Construct the JSON RPC request for outputAtBlock
+  JSON_DATA_OUTPUT='{
       "jsonrpc": "2.0",
       "method": "optimism_outputAtBlock",
       "params": ["0x'$BLOCK_HEX'"],
@@ -30,14 +35,49 @@ get-starting-root env_file=".env":
   }'
 
   # Make the RPC call and extract the output root
-  starting_root=$(curl -s -X POST \
+  output_response=$(curl -s -X POST \
       -H "Content-Type: application/json" \
       $L2_NODE_RPC \
-      --data "$JSON_DATA" \
-      | jq -r '.result.outputRoot')
+      --data "$JSON_DATA_OUTPUT")
+  
+  starting_root=$(echo "$output_response" | jq -r '.result.outputRoot')
 
-  # Display the result
-  printf "Starting root: %s\n" "$starting_root"
+  # Get block details to extract timestamp
+  JSON_DATA_BLOCK='{
+      "jsonrpc": "2.0",
+      "method": "eth_getBlockByNumber",
+      "params": ["0x'$BLOCK_HEX'", false],
+      "id": 2
+  }'
+  
+  block_response=$(curl -s -X POST \
+      -H "Content-Type: application/json" \
+      $L2_RPC \
+      --data "$JSON_DATA_BLOCK")
+  
+  # Extract timestamp and convert from hex to decimal
+  timestamp_hex=$(echo "$block_response" | jq -r '.result.timestamp')
+  timestamp_dec=$(cast --to-dec "$timestamp_hex")
+  
+  # Get rollup config to extract block time
+  JSON_DATA_CONFIG='{
+      "jsonrpc": "2.0",
+      "method": "optimism_rollupConfig",
+      "params": [],
+      "id": 3
+  }'
+  
+  config_response=$(curl -s -X POST \
+      -H "Content-Type: application/json" \
+      $L2_NODE_RPC \
+      --data "$JSON_DATA_CONFIG")
+  
+  block_time=$(echo "$config_response" | jq -r '.result.block_time')
+
+  # Display the results
+  printf "export STARTING_ROOT=%s\n" "$starting_root"
+  printf "export L2_START_TIMESTAMP=%s\n" "$timestamp_dec"
+  printf "export L2_BLOCK_TIME=%s\n" "$block_time"
 
 # Runs the op-succinct program for a single block.
 run-single l2_block_num use-cache="false" prove="false":

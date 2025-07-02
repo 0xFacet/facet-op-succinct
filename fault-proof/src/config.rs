@@ -68,9 +68,6 @@ impl RollupProposerConfig {
         let fast_finality_mode: bool = env::var("FAST_FINALITY_MODE")
             .unwrap_or("false".to_string())
             .parse()?;
-        let proposal_interval_in_blocks: u64 = env::var("PROPOSAL_INTERVAL_IN_BLOCKS")
-            .unwrap_or("1800".to_string())
-            .parse()?;
         let fetch_interval: u64 = env::var("FETCH_INTERVAL").unwrap_or("30".to_string()).parse()?;
         let max_proposals_to_check_for_defense: u64 = env::var("MAX_PROPOSALS_TO_CHECK_FOR_DEFENSE")
             .unwrap_or("100".to_string())
