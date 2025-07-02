@@ -145,6 +145,7 @@ deploy-contracts network env_file=".env":
                 --broadcast \
                 --slow \
                 --verify \
+                --priority-gas-price 100000000 \
                 --rpc-url "$RPC_URL_TO_USE" \
                 --private-key "$PRIVATE_KEY"
             

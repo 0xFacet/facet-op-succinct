@@ -3,10 +3,11 @@ pragma solidity 0.8.24;
 
 import { ISP1Verifier } from "@sp1-contracts/src/ISP1Verifier.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /// @title Rollup
 /// @notice Single-contract fault-proof system: submit → challenge → prove → resolve.
-contract Rollup is Ownable {
+contract Rollup is Ownable, ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -16,6 +17,9 @@ contract Rollup is Ownable {
     uint256 public immutable CHALLENGER_BOND;
     uint256 public immutable PROPOSER_BOND;
     uint256 public immutable FALLBACK_TIMEOUT_SECS;
+    uint256 public immutable PROPOSAL_INTERVAL;
+    uint256 public immutable L2_START_TIMESTAMP;
+    uint256 public immutable L2_BLOCK_TIME;
 
     ISP1Verifier public immutable VERIFIER;
     bytes32 public immutable ROLLUP_CONFIG_HASH;
@@ -59,13 +63,15 @@ contract Rollup is Ownable {
     error AlreadyChallenged();
     error GameNotOver();
     error GameOver();
-    error InvalidPhase();
     error AlreadyResolved();
     error ParentNotResolved();
     error NotFinalized();
     error NoCredit();
     error TransferFailed();
     error InvalidProposalStatus();
+    error InvalidParentGame();
+    error BadCadence();
+    error ParentGameNotResolved();
 
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
@@ -107,7 +113,6 @@ contract Rollup is Ownable {
     mapping(address => uint256) public credit;
 
     mapping(address => bool) public whitelistedProposer;
-    uint256 public lastProposalTimestamp;
 
     uint32  public anchorProposalId; // index of proposal that is current anchor proposal
 
@@ -121,8 +126,11 @@ contract Rollup is Ownable {
         uint256 _challengerBond,
         uint256 _proposerBond,
         uint256 _fallbackTimeout,
+        uint256 _proposalInterval,
         bytes32 _startRoot,
         uint128 _startBlock,
+        uint256 _l2StartTimestamp,
+        uint256 _l2BlockTime,
         ISP1Verifier _verifier,
         bytes32 _rollupHash,
         bytes32 _aggVkey,
@@ -133,6 +141,9 @@ contract Rollup is Ownable {
         CHALLENGER_BOND       = _challengerBond;
         PROPOSER_BOND         = _proposerBond;
         FALLBACK_TIMEOUT_SECS = _fallbackTimeout;
+        PROPOSAL_INTERVAL     = _proposalInterval;
+        L2_START_TIMESTAMP    = _l2StartTimestamp;
+        L2_BLOCK_TIME         = _l2BlockTime;
         
         VERIFIER              = _verifier;
         ROLLUP_CONFIG_HASH    = _rollupHash;
@@ -141,8 +152,6 @@ contract Rollup is Ownable {
 
         anchorProposalId      = 0;
         
-        lastProposalTimestamp = block.timestamp;
-
         // Create genesis proposal representing the starting anchor
         Proposal memory genesis = Proposal({
             l1Head: bytes32(0),
@@ -168,18 +177,32 @@ contract Rollup is Ownable {
     /// @notice Create a new proposal advancing the canonical output root.
     /// @param root L2 output root being proposed.
     /// @param l2BlockNumber Corresponding L2 block number.
+    /// @param parentId The ID of the parent proposal.
     /// @return proposalId Index of the created proposal.
     function submitProposal(
         bytes32 root,
-        uint128 l2BlockNumber
+        uint128 l2BlockNumber,
+        uint32  parentId
     ) external payable returns (uint256 proposalId) {
-        if (!allowedProposer(msg.sender)) revert BadAuth();
         if (msg.value != PROPOSER_BOND) revert IncorrectBondAmount();
+        if (parentId >= proposals.length) revert InvalidParentGame();
 
-        if (l2BlockNumber <= proposals[anchorProposalId].l2BlockNumber) revert InvalidPhase();
-
-        lastProposalTimestamp = block.timestamp;
-
+        Proposal storage parent = proposals[parentId];
+        Proposal storage anchor = proposals[anchorProposalId];
+        
+        if (l2BlockNumber <= anchor.l2BlockNumber) revert BadCadence();
+        if (computeL2Timestamp(l2BlockNumber) >= block.timestamp) revert BadCadence();
+        
+        if (!proposalAuthorized(msg.sender, l2BlockNumber)) revert BadAuth();
+        
+        if (l2BlockNumber != parent.l2BlockNumber + PROPOSAL_INTERVAL) {
+            revert BadCadence();
+        }
+        
+        if (parent.resolutionStatus == ResolutionStatus.CHALLENGER_WINS) {
+            revert InvalidParentGame();
+        }
+        
         proposals.push();
         proposalId = proposals.length - 1;
         
@@ -187,11 +210,27 @@ contract Rollup is Ownable {
         p.l1Head = blockhash(block.number - 1);
         p.rootClaim = root;
         p.l2BlockNumber = uint32(l2BlockNumber);
-        p.parentIndex = anchorProposalId;
+        p.parentIndex = parentId;
         p.deadline = uint32(block.timestamp + MAX_CHALLENGE_SECS);
         p.proposer = msg.sender;
 
         emit ProposalSubmitted(proposalId, msg.sender, root, l2BlockNumber);
+    }
+    
+    function proposalAuthorized(address proposer, uint256 proposedL2BlockNumber) public view returns (bool) {
+        return allowedProposer(proposer) ||
+            (l2BlockAge(proposedL2BlockNumber) > FALLBACK_TIMEOUT_SECS);
+    }
+    
+    function l2BlockAge(uint256 l2BlockNumber) public view returns (uint256) {
+        return block.timestamp - computeL2Timestamp(l2BlockNumber);
+    }
+    
+    /// @notice Returns the L2 timestamp corresponding to a given L2 block number.
+    /// @param _l2BlockNumber The L2 block number of the target block.
+    /// @return L2 timestamp of the given block.
+    function computeL2Timestamp(uint256 _l2BlockNumber) public view returns (uint256) {
+        return L2_START_TIMESTAMP + ((_l2BlockNumber - proposals[0].l2BlockNumber) * L2_BLOCK_TIME);
     }
 
     function challengeProposal(uint256 id) external payable onlyIfGameNotOver(id) {
@@ -250,34 +289,53 @@ contract Rollup is Ownable {
 
     function resolveProposal(uint256 id) external onlyIfGameOver(id) {
         Proposal storage p = proposals[id];
+        Proposal storage parentProposal = proposals[p.parentIndex];
+        
+        if (parentProposal.resolutionStatus == ResolutionStatus.IN_PROGRESS) {
+            revert ParentGameNotResolved();
+        }
+        
         if (p.resolutionStatus != ResolutionStatus.IN_PROGRESS) revert AlreadyResolved();
-
-        if (p.proposalStatus == ProposalStatus.Challenged) {
-            // Challenger wins - no proof provided in time
-            p.resolutionStatus = ResolutionStatus.CHALLENGER_WINS;
-            credit[p.challenger] += PROPOSER_BOND + CHALLENGER_BOND;
+        
+        uint256 totalBond;
+        
+        if (p.challenger == address(0)) {
+            totalBond = PROPOSER_BOND;
         } else {
-            // Defender wins - either unchallenged or proven
-            p.resolutionStatus = ResolutionStatus.DEFENDER_WINS;
-
-            if (p.proposalStatus == ProposalStatus.Unchallenged ||
-                p.proposalStatus == ProposalStatus.UnchallengedAndValidProofProvided) {
-                // Simple case: proposer gets their bond back
-                credit[p.proposer] += PROPOSER_BOND;
-            } else if (p.proposalStatus == ProposalStatus.ChallengedAndValidProofProvided) {
-                uint256 totalBond = PROPOSER_BOND + CHALLENGER_BOND;
-                
-                if (p.prover == p.proposer) {
-                    credit[p.prover] += totalBond;
-                } else {
-                    credit[p.prover] += CHALLENGER_BOND;
-                    credit[p.proposer] += totalBond - CHALLENGER_BOND;
-                }
+            totalBond = PROPOSER_BOND + CHALLENGER_BOND;
+        }
+        
+        if (parentProposal.resolutionStatus == ResolutionStatus.CHALLENGER_WINS) {
+            // Parent game is invalid so this game is invalid too. Therefore the challenger wins and gets all bonds.
+            // If the game has not been challenged then there will not be any challenger address and the bond is burned.
+            p.resolutionStatus = ResolutionStatus.CHALLENGER_WINS;
+            credit[p.challenger] += totalBond;
+        } else {
+            if (p.proposalStatus == ProposalStatus.Challenged) {
+                // Challenger wins - no proof provided in time
+                p.resolutionStatus = ResolutionStatus.CHALLENGER_WINS;
+                credit[p.challenger] += totalBond;
             } else {
-                revert InvalidProposalStatus();
+                // Defender wins - either unchallenged or proven
+                p.resolutionStatus = ResolutionStatus.DEFENDER_WINS;
+
+                if (p.proposalStatus == ProposalStatus.Unchallenged ||
+                    p.proposalStatus == ProposalStatus.UnchallengedAndValidProofProvided) {
+                    // Simple case: proposer gets their bond back
+                    credit[p.proposer] += totalBond;
+                } else if (p.proposalStatus == ProposalStatus.ChallengedAndValidProofProvided) {
+                    if (p.prover == p.proposer) {
+                        credit[p.prover] += totalBond;
+                    } else {
+                        credit[p.prover] += CHALLENGER_BOND;
+                        credit[p.proposer] += totalBond - CHALLENGER_BOND;
+                    }
+                } else {
+                    revert InvalidProposalStatus();
+                }
             }
         }
-
+        
         p.proposalStatus = ProposalStatus.Resolved;
         p.resolvedAt = uint64(block.timestamp);
         
@@ -297,7 +355,7 @@ contract Rollup is Ownable {
                          CREDIT WITHDRAWAL & FINALIZATION
     //////////////////////////////////////////////////////////////*/
 
-    function claimCredit(address recipient) public {
+    function claimCredit(address recipient) public nonReentrant {
         uint256 amount = credit[recipient];
         if (amount == 0) revert NoCredit();
         
@@ -316,9 +374,7 @@ contract Rollup is Ownable {
     }
 
     function allowedProposer(address a) public view returns (bool) {
-        return whitelistedProposer[a] ||
-            whitelistedProposer[address(0)] ||
-            (block.timestamp - lastProposalTimestamp > FALLBACK_TIMEOUT_SECS);
+        return whitelistedProposer[a] || whitelistedProposer[address(0)];
     }
 
     /*//////////////////////////////////////////////////////////////

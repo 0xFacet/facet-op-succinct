@@ -46,6 +46,7 @@ where
     pub safe_db_fallback: bool,
     pub proposer_bond: U256,
     pub challenger_bond: U256,
+    pub proposal_interval: u64,
     prover: SP1Prover,
     fetcher: Arc<OPSuccinctDataFetcher>,
     host: Arc<H>,
@@ -82,6 +83,10 @@ where
         let proposer_bond = rollup.PROPOSER_BOND().call().await?;
         let challenger_bond = rollup.CHALLENGER_BOND().call().await?;
 
+        // Fetch proposal interval from contract to avoid config mismatch
+        let proposal_interval_u256 = rollup.PROPOSAL_INTERVAL().call().await?;
+        let proposal_interval: u64 = proposal_interval_u256.to::<u64>();
+
         Ok(Self {
             config: config.clone(),
             prover_address,
@@ -92,6 +97,7 @@ where
             safe_db_fallback: config.safe_db_fallback,
             proposer_bond,
             challenger_bond,
+            proposal_interval,
             prover: SP1Prover {
                 network_prover,
                 range_pk: Arc::new(range_pk),
@@ -138,7 +144,14 @@ where
         tracing::info!("  Deadline: {}", proposal.deadline);
         
         // Step 3: Compute start/end blocks
-        let l2_start = l2_block_number as u64 - self.config.proposal_interval_in_blocks;
+        // Retrieve parent proposal to determine start block
+        let parent_proposal = self
+            .rollup
+            .getProposal(U256::from(proposal.parentIndex))
+            .call()
+            .await?;
+
+        let l2_start = parent_proposal.l2BlockNumber as u64;
         let l2_end = l2_block_number as u64;
         
         tracing::info!("Block range: {} - {}", l2_start, l2_end);
@@ -272,16 +285,18 @@ where
     pub async fn create_proposal(
         &self,
         l2_block_number: U256,
+        parent_id: U256,
     ) -> Result<U256> {
         tracing::info!("=== Proposal Creation Parameters ===");
         tracing::info!("Config values:");
-        tracing::info!("  - Proposal interval: {:?} blocks", self.config.proposal_interval_in_blocks);
+        tracing::info!("  - Proposal interval: {:?} blocks", self.proposal_interval);
         tracing::info!("  - Fast finality mode: {:?}", self.config.fast_finality_mode);
         tracing::info!("  - Safe DB fallback: {:?}", self.config.safe_db_fallback);
         tracing::info!("  - Mock mode: {:?}", self.config.mock_mode);
         
         tracing::info!("Proposal parameters:");
         tracing::info!("  - L2 block number: {:?}", l2_block_number);
+        tracing::info!("  - Parent ID: {:?}", parent_id);
         tracing::info!("  - Prover address: {:?}", self.prover_address);
         tracing::info!("  - Rollup address: {:?}", self.rollup.address());
 
@@ -290,7 +305,11 @@ where
 
         let transaction_request = self
             .rollup
-            .submitProposal(output_root, l2_block_number.try_into().unwrap())
+            .submitProposal(
+                output_root,
+                l2_block_number.try_into().unwrap(),
+                parent_id.to::<u32>(),
+            )
             .value(self.proposer_bond)
             .into_transaction_request();
 
@@ -362,7 +381,7 @@ where
 
         // Calculate next L2 block number for proposal with overflow check
         let next_l2_block_number = reference_block
-            .checked_add(U256::from(self.config.proposal_interval_in_blocks))
+            .checked_add(U256::from(self.proposal_interval))
             .ok_or_else(|| anyhow::anyhow!("Overflow calculating next L2 block number"))?;
 
         let finalized_l2_head_block_number = self
@@ -389,7 +408,9 @@ where
                     finalized_block,
                     next_l2_block_number
                 );
-                let proposal_id = self.create_proposal(U256::from(next_l2_block_number)).await?;
+                let proposal_id = self
+                    .create_proposal(U256::from(next_l2_block_number), reference_proposal_id)
+                    .await?;
 
                 Ok(Some(proposal_id))
             } else {
