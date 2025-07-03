@@ -3,6 +3,12 @@ pragma solidity 0.8.24;
 
 import { ISP1Verifier } from "@sp1-contracts/src/ISP1Verifier.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+
+import { Types } from "src/libraries/Types.sol";
+import { Hashing } from "src/libraries/Hashing.sol";
+import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
+import { SafeCall } from "src/libraries/SafeCall.sol";
+
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /// @title Rollup
@@ -27,6 +33,17 @@ contract Rollup is Ownable, ReentrancyGuard {
     bytes32 public immutable RANGE_VKEY_COMMITMENT;
 
     string public constant version = "1.0.0";
+    address public constant DEFAULT_L2_SENDER = 0x000000000000000000000000000000000000dEaD;
+    uint64 public constant RELAY_RESERVED_GAS = 40_000;
+
+    /*//////////////////////////////////////////////////////////////
+                           PORTAL EXTENSION
+    //////////////////////////////////////////////////////////////*/
+    
+    // Portal immutable parameters
+    uint256 public immutable PROOF_DELAY;          // seconds to wait after prove
+    uint256 public immutable MIN_NONCE;            // namespace floor for forks
+    Rollup  public immutable PREV_PORTAL;          // 0x0 for genesis
 
     /*//////////////////////////////////////////////////////////////
                                ENUMS
@@ -53,6 +70,10 @@ contract Rollup is Ownable, ReentrancyGuard {
     event AnchorUpdated(uint256 indexed proposalId, bytes32 root, uint128 l2BlockNumber);
     event ProposalClosed(uint256 indexed proposalId);
     event ProposerPermissionUpdated(address indexed proposer, bool allowed);
+    
+    // Portal events
+    event WithdrawalProven(bytes32 indexed hash, address indexed prover);
+    event WithdrawalFinalized(bytes32 indexed hash, bool success);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -72,6 +93,20 @@ contract Rollup is Ownable, ReentrancyGuard {
     error InvalidParentGame();
     error BadCadence();
     error ParentGameNotResolved();
+    
+    // Portal errors
+    error AlreadyProven();
+    error AlreadyFinalized();
+    error BelowMinNonce();
+    error InvalidRoot();
+    error InvalidMerkleProof();
+    error Unproven();
+    error ProofNotMature();
+    error UnsafeTarget();
+    error NonCanonicalProposal();
+    error WithdrawalHasValue();
+    error NonReentrant();
+    error InsufficientGas();
 
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
@@ -116,6 +151,13 @@ contract Rollup is Ownable, ReentrancyGuard {
 
     uint32  public anchorProposalId; // index of proposal that is current anchor proposal
 
+    // Portal storage
+    mapping(bytes32 => uint64) public withdrawalProvenAt;   // hash → timestamp
+    mapping(bytes32 => bool)  public withdrawalFinalized;   // hash → done
+    
+    // L2 sender address during withdrawal execution
+    address public l2Sender;
+
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -134,7 +176,10 @@ contract Rollup is Ownable, ReentrancyGuard {
         ISP1Verifier _verifier,
         bytes32 _rollupHash,
         bytes32 _aggVkey,
-        bytes32 _rangeCommit
+        bytes32 _rangeCommit,
+        uint256 _proofDelay,
+        uint256 _minNonce,
+        address _prevPortal
     ) {
         MAX_CHALLENGE_SECS    = _challengeSecs;
         MAX_PROVE_SECS        = _proveSecs;
@@ -149,8 +194,14 @@ contract Rollup is Ownable, ReentrancyGuard {
         ROLLUP_CONFIG_HASH    = _rollupHash;
         AGG_VKEY              = _aggVkey;
         RANGE_VKEY_COMMITMENT = _rangeCommit;
+        
+        // Portal immutables
+        PROOF_DELAY  = _proofDelay;
+        MIN_NONCE    = _minNonce;
+        PREV_PORTAL  = Rollup(_prevPortal);
 
         anchorProposalId      = 0;
+        l2Sender              = DEFAULT_L2_SENDER;
         
         // Create genesis proposal representing the starting anchor
         Proposal memory genesis = Proposal({
@@ -429,5 +480,119 @@ contract Rollup is Ownable, ReentrancyGuard {
     function needsDefense(uint256 proposalId) external view returns (bool) {
         if (proposalId >= proposals.length) return false;
         return !gameOver(proposalId) && proposals[proposalId].proposalStatus == ProposalStatus.Challenged;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                           PORTAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Prove a withdrawal against a resolved & canonical proposal root.
+    /// @dev Reverts if withdrawal has value or if already proven.
+    function proveWithdrawal(
+        Types.WithdrawalTransaction calldata tx_,
+        uint256 proposalId,
+        Types.OutputRootProof calldata rootProof,
+        bytes[] calldata withdrawalProof
+    ) external {
+        // Check withdrawal has no value
+        if (tx_.value != 0) revert WithdrawalHasValue();
+        if (MIN_NONCE != 0 && tx_.nonce < MIN_NONCE) revert BelowMinNonce();
+
+        bytes32 h = Hashing.hashWithdrawal(tx_);
+        
+        // Check if already proven (prevent double proving)
+        if (withdrawalProvenAt[h] != 0) revert AlreadyProven();
+        if (_isFinalized(h)) revert AlreadyFinalized();
+        
+        // No self-calls allowed
+        if (tx_.target == address(this)) revert UnsafeTarget();
+
+        // Check proposal is canonical
+        Proposal storage prop = proposals[proposalId];
+        if (prop.resolutionStatus != ResolutionStatus.DEFENDER_WINS)
+            revert NonCanonicalProposal();
+
+        // Root hash must match proposal root
+        if (prop.rootClaim != Hashing.hashOutputRootProof(rootProof))
+            revert InvalidRoot();
+
+        // Inclusion proof of withdrawal hash in L2ToL1MessagePasser
+        bytes32 slotKey = keccak256(abi.encode(h, uint256(0))); // mapping slot 0
+        bool ok = SecureMerkleTrie.verifyInclusionProof({
+            _key: abi.encode(slotKey),
+            _value: hex"01",
+            _proof: withdrawalProof,
+            _root: rootProof.messagePasserStorageRoot
+        });
+        if (!ok) revert InvalidMerkleProof();
+
+        withdrawalProvenAt[h] = uint64(block.timestamp);
+        emit WithdrawalProven(h, msg.sender);
+    }
+
+    /// @notice Finalize a proven withdrawal and relay the call.
+    /// @dev Reverts if withdrawal has value. No ETH transfers allowed.
+    /// @dev Failed withdrawals can be retried until successful.
+    function finalizeWithdrawal(Types.WithdrawalTransaction calldata tx_) external {
+        // Reentrancy guard using l2Sender
+        if (l2Sender != DEFAULT_L2_SENDER) revert NonReentrant();
+        
+        bytes32 h = Hashing.hashWithdrawal(tx_);
+        
+        // Successful withdrawals cannot be replayed
+        if (_isFinalized(h)) revert AlreadyFinalized();
+        
+        // Check proof exists and is mature
+        uint64 ts = withdrawalProvenAt[h];
+        if (ts == 0) revert Unproven();
+        if (block.timestamp - ts < PROOF_DELAY) revert ProofNotMature();
+        
+        // Ensure minimum gas for execution
+        if (!SafeCall.hasMinGas(tx_.gasLimit, RELAY_RESERVED_GAS)) {
+            revert InsufficientGas();
+        }
+        
+        // No self-calls allowed
+        if (tx_.target == address(this)) revert UnsafeTarget();
+        
+        // Set the l2Sender so contracts know who triggered this withdrawal on L2
+        l2Sender = tx_.sender;
+        
+        // Execute call with no value
+        bool success = SafeCall.callWithMinGas(
+            tx_.target,
+            tx_.gasLimit,
+            0, // Always 0 value
+            tx_.data
+        );
+        
+        // Reset the l2Sender back to the default value
+        l2Sender = DEFAULT_L2_SENDER;
+        
+        // Only mark as finalized on success
+        if (success) {
+            withdrawalFinalized[h] = true;
+        }
+        
+        emit WithdrawalFinalized(h, success);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                         PORTAL HELPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Check if a withdrawal has been finalized in this or any previous portal.
+    /// @param h The withdrawal hash to check.
+    function _isFinalized(bytes32 h) internal view returns (bool) {
+        return withdrawalFinalized[h] || _finalizedInPrev(h);
+    }
+
+    function _finalizedInPrev(bytes32 h) internal view returns (bool) {
+        Rollup p = PREV_PORTAL;
+        while (address(p) != address(0)) {
+            if (p.withdrawalFinalized(h)) return true;
+            p = p.PREV_PORTAL();
+        }
+        return false;
     }
 }
