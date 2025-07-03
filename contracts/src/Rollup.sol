@@ -107,6 +107,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     error WithdrawalHasValue();
     error NonReentrant();
     error InsufficientGas();
+    error PortalPrevIsSelf();
 
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
@@ -199,6 +200,9 @@ contract Rollup is Ownable, ReentrancyGuard {
         PROOF_DELAY  = _proofDelay;
         MIN_NONCE    = _minNonce;
         PREV_PORTAL  = Rollup(_prevPortal);
+        
+        // Sanity check: can't point to ourselves
+        if (_prevPortal == address(this)) revert PortalPrevIsSelf();
 
         anchorProposalId      = 0;
         l2Sender              = DEFAULT_L2_SENDER;
