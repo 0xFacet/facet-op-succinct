@@ -100,7 +100,6 @@ contract Rollup is Ownable, ReentrancyGuard {
     error InvalidRoot();
     error InvalidMerkleProof();
     error Unproven();
-    error ProofNotMature();
     error UnsafeTarget();
     error NonCanonicalProposal();
     error WithdrawalHasValue();
