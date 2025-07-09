@@ -41,7 +41,6 @@ contract Rollup is Ownable, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
     
     // Portal immutable parameters
-    uint256 public immutable PROOF_DELAY;          // seconds to wait after prove
     uint256 public immutable MIN_NONCE;            // namespace floor for forks
     Rollup  public immutable PREV_PORTAL;          // 0x0 for genesis
 
@@ -158,6 +157,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     
     // L2 sender address during withdrawal execution
     address public l2Sender;
+    uint256 public currentWithdrawalProvedAt;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
@@ -178,7 +178,6 @@ contract Rollup is Ownable, ReentrancyGuard {
         bytes32 _rollupHash,
         bytes32 _aggVkey,
         bytes32 _rangeCommit,
-        uint256 _proofDelay,
         uint256 _minNonce,
         address _prevPortal
     ) {
@@ -197,7 +196,6 @@ contract Rollup is Ownable, ReentrancyGuard {
         RANGE_VKEY_COMMITMENT = _rangeCommit;
         
         // Portal immutables
-        PROOF_DELAY  = _proofDelay;
         MIN_NONCE    = _minNonce;
         PREV_PORTAL  = Rollup(_prevPortal);
         
@@ -206,6 +204,7 @@ contract Rollup is Ownable, ReentrancyGuard {
 
         anchorProposalId      = 0;
         l2Sender              = DEFAULT_L2_SENDER;
+        currentWithdrawalProvedAt = type(uint256).max;
         
         // Create genesis proposal representing the starting anchor
         Proposal memory genesis = Proposal({
@@ -549,7 +548,6 @@ contract Rollup is Ownable, ReentrancyGuard {
         // Check proof exists and is mature
         uint64 ts = withdrawalProvenAt[h];
         if (ts == 0) revert Unproven();
-        if (block.timestamp - ts < PROOF_DELAY) revert ProofNotMature();
         
         // Ensure minimum gas for execution
         if (!SafeCall.hasMinGas(tx_.gasLimit, RELAY_RESERVED_GAS)) {
@@ -561,7 +559,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         
         // Set the l2Sender so contracts know who triggered this withdrawal on L2
         l2Sender = tx_.sender;
-        
+        currentWithdrawalProvedAt = ts;
         // Execute call with no value
         bool success = SafeCall.callWithMinGas(
             tx_.target,
@@ -572,6 +570,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         
         // Reset the l2Sender back to the default value
         l2Sender = DEFAULT_L2_SENDER;
+        currentWithdrawalProvedAt = type(uint256).max;
         
         // Only mark as finalized on success
         if (success) {
