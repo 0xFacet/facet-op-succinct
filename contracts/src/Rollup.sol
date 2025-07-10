@@ -137,6 +137,17 @@ contract Rollup is Ownable, ReentrancyGuard {
         bytes32 rangeVkeyCommitment;
         address proverAddress;
     }
+    
+    struct ProvenWithdrawal {
+        uint32 proposalId;
+        uint32 provenAt;
+    }
+    
+    struct WithdrawalContext {
+        address l2Sender;
+        uint32 proposalId;
+        uint32 provenAt;
+    }
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
@@ -151,12 +162,11 @@ contract Rollup is Ownable, ReentrancyGuard {
     uint32  public anchorProposalId; // index of proposal that is current anchor proposal
 
     // Portal storage
-    mapping(bytes32 => uint64) public withdrawalProvenAt;   // hash → timestamp
+    mapping(bytes32 => ProvenWithdrawal) public provenWithdrawals;   // hash → proof info
     mapping(bytes32 => bool)  public withdrawalFinalized;   // hash → done
     
-    // L2 sender address during withdrawal execution
-    address public l2Sender;
-    uint256 public currentWithdrawalProvedAt;
+    // Withdrawal execution context
+    WithdrawalContext public currentWithdrawal;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
@@ -202,8 +212,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         if (_prevPortal == address(this)) revert PortalPrevIsSelf();
 
         anchorProposalId      = 0;
-        l2Sender              = DEFAULT_L2_SENDER;
-        currentWithdrawalProvedAt = type(uint256).max;
+        _resetWithdrawalContext();
         
         // Create genesis proposal representing the starting anchor
         Proposal memory genesis = Proposal({
@@ -327,6 +336,12 @@ contract Rollup is Ownable, ReentrancyGuard {
         Proposal storage p = proposals[proposalId];
         return p.deadline < block.timestamp || p.prover != address(0);
     }
+    
+    function _resetWithdrawalContext() internal {
+        currentWithdrawal.l2Sender = DEFAULT_L2_SENDER;
+        currentWithdrawal.proposalId = type(uint32).max;
+        currentWithdrawal.provenAt = type(uint32).max;
+    }
 
     function l2BlockAge(uint256 l2BlockNumber) public view returns (uint256) {
         return block.timestamp - computeL2Timestamp(l2BlockNumber);
@@ -437,6 +452,10 @@ contract Rollup is Ownable, ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                                 GETTERS
     //////////////////////////////////////////////////////////////*/
+    
+   function l2Sender() public view returns (address) {
+       return currentWithdrawal.l2Sender;
+   }
 
     function getProposal(uint256 id) external view returns (Proposal memory) {
         return proposals[id];
@@ -503,7 +522,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         bytes32 h = Hashing.hashWithdrawal(tx_);
         
         // Check if already proven (prevent double proving)
-        if (withdrawalProvenAt[h] != 0) revert AlreadyProven();
+        if (provenWithdrawals[h].provenAt != 0) revert AlreadyProven();
         if (_isFinalized(h)) revert AlreadyFinalized();
         
         // No self-calls allowed
@@ -528,7 +547,10 @@ contract Rollup is Ownable, ReentrancyGuard {
         });
         if (!ok) revert InvalidMerkleProof();
 
-        withdrawalProvenAt[h] = uint64(block.timestamp);
+        provenWithdrawals[h] = ProvenWithdrawal({
+            proposalId: uint32(proposalId),
+            provenAt: uint32(block.timestamp)
+        });
         emit WithdrawalProven(h, msg.sender);
     }
 
@@ -536,17 +558,17 @@ contract Rollup is Ownable, ReentrancyGuard {
     /// @dev Reverts if withdrawal has value. No ETH transfers allowed.
     /// @dev Failed withdrawals can be retried until successful.
     function finalizeWithdrawal(Types.WithdrawalTransaction calldata tx_) external {
-        // Reentrancy guard using l2Sender
-        if (l2Sender != DEFAULT_L2_SENDER) revert NonReentrant();
+        // Reentrancy guard using currentWithdrawal.l2Sender
+        if (currentWithdrawal.l2Sender != DEFAULT_L2_SENDER) revert NonReentrant();
         
         bytes32 h = Hashing.hashWithdrawal(tx_);
         
         // Successful withdrawals cannot be replayed
         if (_isFinalized(h)) revert AlreadyFinalized();
         
-        // Check proof exists and is mature
-        uint64 ts = withdrawalProvenAt[h];
-        if (ts == 0) revert Unproven();
+        // Check proof exists
+        ProvenWithdrawal memory proven = provenWithdrawals[h];
+        if (proven.provenAt == 0) revert Unproven();
         
         // Ensure minimum gas for execution
         if (!SafeCall.hasMinGas(tx_.gasLimit, RELAY_RESERVED_GAS)) {
@@ -556,9 +578,12 @@ contract Rollup is Ownable, ReentrancyGuard {
         // No self-calls allowed
         if (tx_.target == address(this)) revert UnsafeTarget();
         
-        // Set the l2Sender so contracts know who triggered this withdrawal on L2
-        l2Sender = tx_.sender;
-        currentWithdrawalProvedAt = ts;
+        // Set the withdrawal context so contracts know who triggered this withdrawal on L2
+        currentWithdrawal = WithdrawalContext({
+            l2Sender: tx_.sender,
+            proposalId: proven.proposalId,
+            provenAt: proven.provenAt
+        });
         // Execute call with no value
         bool success = SafeCall.callWithMinGas(
             tx_.target,
@@ -567,9 +592,7 @@ contract Rollup is Ownable, ReentrancyGuard {
             tx_.data
         );
         
-        // Reset the l2Sender back to the default value
-        l2Sender = DEFAULT_L2_SENDER;
-        currentWithdrawalProvedAt = type(uint256).max;
+        _resetWithdrawalContext();
         
         // Only mark as finalized on success
         if (success) {
