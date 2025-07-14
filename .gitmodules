@@ -19,3 +19,6 @@
 [submodule "contracts/lib/lib-keccak"]
 	path = contracts/lib/lib-keccak
 	url = https://github.com/ethereum-optimism/lib-keccak
+[submodule "contracts/lib/facet-sol"]
+	path = contracts/lib/facet-sol
+	url = https://github.com/0xFacet/facet-sol
