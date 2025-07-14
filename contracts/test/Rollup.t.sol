@@ -85,7 +85,11 @@ contract RollupTest is Test {
             ISP1Verifier(address(verifier)),
             ROLLUP_CONFIG_HASH,
             AGGREGATION_VKEY,
-            RANGE_VKEY_COMMITMENT
+            RANGE_VKEY_COMMITMENT,
+            Rollup.PortalConfig({
+                minNonce: 0,
+                prevPortal: address(0)
+            })
         );
         
         // Whitelist proposer

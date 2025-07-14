@@ -32,20 +32,24 @@ contract DeployRollup is Script {
         }
 
         Rollup rollup = new Rollup({
-            _challengeSecs:    vm.envUint("MAX_CHALLENGE_DURATION"),
-            _proveSecs:        vm.envUint("MAX_PROVE_DURATION"),
-            _challengerBond:   vm.envUint("CHALLENGER_BOND_WEI"),
-            _proposerBond:     vm.envUint("PROPOSER_BOND_WEI"),
-            _fallbackTimeout:  vm.envUint("FALLBACK_TIMEOUT_SECS"),
-            _proposalInterval: vm.envUint("PROPOSAL_INTERVAL"),
-            _startRoot:        vm.envBytes32("STARTING_ROOT"),
-            _startBlock:       uint128(vm.envUint("STARTING_L2_BLOCK_NUMBER")),
-            _l2StartTimestamp: vm.envUint("L2_START_TIMESTAMP"),
-            _l2BlockTime:      vm.envUint("L2_BLOCK_TIME"),
-            _verifier:         ISP1Verifier(verifierAddr),
-            _rollupHash:       rollupHash,
-            _aggVkey:          aggVkey,
-            _rangeCommit:      rangeCommit
+            _challengeSecs:       vm.envUint("MAX_CHALLENGE_DURATION"),
+            _proveSecs:           vm.envUint("MAX_PROVE_DURATION"),
+            _challengerBondAmount: vm.envUint("CHALLENGER_BOND_WEI"),
+            _proposerBondAmount:   vm.envUint("PROPOSER_BOND_WEI"),
+            _fallbackTimeout:     vm.envUint("FALLBACK_TIMEOUT_SECS"),
+            _proposalInterval:    vm.envUint("PROPOSAL_INTERVAL"),
+            _startRoot:           vm.envBytes32("STARTING_ROOT"),
+            _startBlock:          uint128(vm.envUint("STARTING_L2_BLOCK_NUMBER")),
+            _l2StartTimestamp:    vm.envUint("L2_START_TIMESTAMP"),
+            _l2BlockTime:         vm.envUint("L2_BLOCK_TIME"),
+            _verifier:            ISP1Verifier(verifierAddr),
+            _rollupHash:          rollupHash,
+            _aggVkey:             aggVkey,
+            _rangeCommit:         rangeCommit,
+            _portalConfig:        Rollup.PortalConfig({
+                minNonce:    vm.envOr("MIN_NONCE", uint256(0)),
+                prevPortal:  vm.envOr("PREV_PORTAL", address(0))
+            })
         });
 
         if (vm.envBool("PERMISSIONLESS_MODE")) {
