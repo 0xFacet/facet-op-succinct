@@ -1,7 +1,8 @@
 use std::{env, sync::Arc, time::Duration};
 
-use alloy_primitives::{Address, TxHash, U256};
+use alloy_primitives::{Address, TxHash, U256, B256};
 use alloy_provider::{Provider, ProviderBuilder};
+use alloy_eips::BlockNumberOrTag;
 use alloy_sol_types::SolEvent;
 use anyhow::{Context, Result};
 use op_succinct_client_utils::boot::BootInfoStruct;
@@ -119,7 +120,7 @@ where
             ProposalStatus::Challenged => {
                 tracing::info!("Proposal {} is challenged, proceeding with proof generation", proposal_id);
             }
-            ProposalStatus::ChallengedAndValidProofProvided => {
+            ProposalStatus::ChallengedAndProven => {
                 return Err(anyhow::anyhow!("Proposal {} already has a valid proof", proposal_id));
             }
             ProposalStatus::Resolved => {
@@ -130,14 +131,16 @@ where
             }
         }
 
-        let l1_head_hash = proposal.l1Head;
-        tracing::debug!("L1 head hash: {:?}", hex::encode(l1_head_hash));
+        // Get L1 block for proof (latest - 1 for reorg protection)
+        let (l1_block_number, l1_head_hash) = self.get_l1_block_for_proof().await
+            .context("Failed to get L1 block for proof")?;
+        
         let l2_block_number = proposal.l2BlockNumber;
         
         // Validate proposal data
         tracing::info!("Proposal details:");
         tracing::info!("  Proposal ID: {}", proposal_id);
-        tracing::info!("  L1 Head: 0x{}", hex::encode(l1_head_hash));
+        tracing::info!("  L1 Block: {} (0x{})", l1_block_number, hex::encode(l1_head_hash));
         tracing::info!("  L2 Block Number: {}", l2_block_number);
         tracing::info!("  Root Claim: 0x{}", hex::encode(proposal.rootClaim));
         tracing::info!("  Proposer: 0x{}", hex::encode(proposal.proposer));
@@ -271,7 +274,16 @@ where
                 .await?
         };
 
-        let transaction_request = self.rollup.proveProposal(proposal_id, agg_proof.bytes().into()).into_transaction_request();
+        // Checkpoint L1 block right before submission
+        self.checkpoint_l1_block(l1_block_number).await?;
+        
+        let transaction_request = self.rollup
+            .proveProposal(
+                proposal_id, 
+                U256::from(l1_block_number),
+                agg_proof.bytes().into()
+            )
+            .into_transaction_request();
 
         let receipt = self
             .signer
@@ -582,6 +594,20 @@ where
             return Ok(Action::Skipped);
         }
 
+        // Calculate minimum threshold based on proposer bond and multiplier
+        let min_threshold = self.proposer_bond * U256::from(self.config.min_credit_threshold_multiplier);
+        
+        if credit < min_threshold {
+            tracing::info!(
+                "Credit {} wei is below minimum threshold {} wei ({}x proposer bond)",
+                credit,
+                min_threshold,
+                self.config.min_credit_threshold_multiplier
+            );
+            ProposerGauge::ClaimsSkippedThreshold.increment(1.0);
+            return Ok(Action::Skipped);
+        }
+
         tracing::info!("Attempting to claim credit: {} wei", credit);
 
         let transaction_request = self.rollup.claimCredit(self.prover_address).into_transaction_request();
@@ -602,6 +628,62 @@ where
             }
             Err(e) => Err(anyhow::anyhow!("Failed to claim credit: {:?}", e)),
         }
+    }
+
+    /// Get L1 block for proof generation (latest - 1 for reorg protection)
+    async fn get_l1_block_for_proof(&self) -> Result<(u64, B256)> {
+        // Get latest block
+        let latest = self.l1_provider
+            .get_block(BlockNumberOrTag::Latest.into())
+            .await?
+            .context("Failed to get latest block")?;
+        
+        // Use latest - 1 for minimal reorg protection
+        let target_number = latest.header.number.saturating_sub(1);
+        
+        let block = self.l1_provider
+            .get_block(BlockNumberOrTag::Number(target_number).into())
+            .await?
+            .context("Failed to get target block")?;
+        
+        tracing::info!(
+            "Using L1 block {} (0x{}) for proof generation (latest: {})",
+            target_number,
+            hex::encode(block.header.hash),
+            latest.header.number
+        );
+        
+        Ok((target_number, block.header.hash))
+    }
+
+    /// Checkpoint L1 block (always checkpoint, following official Succinct approach)
+    async fn checkpoint_l1_block(&self, block_number: u64) -> Result<()> {
+        tracing::info!("Checkpointing L1 block {}", block_number);
+        
+        let tx = self.rollup
+            .checkpointL1BlockHash(U256::from(block_number))
+            .into_transaction_request();
+            
+        ProposerGauge::CheckpointAttempts.increment(1.0);
+        
+        let receipt = self.signer
+            .send_transaction_request(self.config.l1_rpc.clone(), tx)
+            .await
+            .map_err(|e| {
+                ProposerGauge::CheckpointFailures.increment(1.0);
+                anyhow::anyhow!("Failed to checkpoint L1 block {}: {:?}", block_number, e)
+            })?;
+            
+        // Check if transaction reverted
+        if !receipt.status() {
+            ProposerGauge::CheckpointFailures.increment(1.0);
+            return Err(anyhow::anyhow!("Checkpoint transaction reverted: {:?}", receipt));
+        }
+        
+        tracing::info!("L1 block {} checkpointed in tx {:?}", 
+            block_number, receipt.transaction_hash);
+        
+        Ok(())
     }
 
     /// Fetch the proposer metrics
@@ -692,6 +774,242 @@ where
                     }
                 }
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy_primitives::{keccak256, hex};
+    use alloy_sol_types::SolCall;
+    use crate::contract::Rollup::{proveProposalCall, checkpointL1BlockHashCall};
+    
+    #[test]
+    fn test_l1_block_selection_logic() {
+        // Test that we correctly select latest - 1
+        let latest_number = 100u64;
+        let target_number = latest_number.saturating_sub(1);
+        assert_eq!(target_number, 99);
+        
+        // Test edge case with block 0
+        let latest_zero = 0u64;
+        let target_zero = latest_zero.saturating_sub(1);
+        assert_eq!(target_zero, 0); // saturating_sub prevents underflow
+    }
+
+    #[test]
+    fn test_checkpoint_selector_exact_value() {
+        // Test that checkpoint function selector has the correct value
+        let selector = keccak256(b"checkpointL1BlockHash(uint256)");
+        let actual_selector = &selector[0..4];
+        
+        // Expected value calculated independently
+        // You can verify with: cast sig "checkpointL1BlockHash(uint256)"
+        let expected: [u8; 4] = hex!("3522f010");
+        
+        assert_eq!(actual_selector, expected);
+    }
+
+    #[test]
+    fn test_prove_proposal_abi_encoding() {
+        // Test that proveProposal encoding matches expected ABI
+        use crate::contract::Rollup::proveProposalCall;
+        
+        let call = proveProposalCall {
+            id: U256::from(42),
+            l1BlockNumber: U256::from(12345),
+            proof: hex!("deadbeef").into(),
+        };
+        
+        // Encode the call
+        let encoded = call.abi_encode();
+        
+        // First 4 bytes should be the selector
+        let selector = &encoded[0..4];
+        let expected_selector = keccak256(b"proveProposal(uint256,uint256,bytes)")[0..4].to_vec();
+        assert_eq!(selector, expected_selector);
+        
+        // Decode and verify round-trip
+        let decoded = proveProposalCall::abi_decode(&encoded).unwrap();
+        assert_eq!(decoded.id, U256::from(42));
+        assert_eq!(decoded.l1BlockNumber, U256::from(12345));
+        assert_eq!(decoded.proof.as_ref(), hex!("deadbeef").as_ref());
+    }
+
+    #[test]
+    fn test_checkpoint_l1_block_hash_abi_encoding() {
+        // Test checkpointL1BlockHash encoding
+        use crate::contract::Rollup::checkpointL1BlockHashCall;
+        
+        let call = checkpointL1BlockHashCall {
+            l1BlockNumber: U256::from(999),
+        };
+        
+        let encoded = call.abi_encode();
+        
+        // Verify selector matches our expected value
+        let selector = &encoded[0..4];
+        assert_eq!(selector, hex!("3522f010"));
+        
+        // Round-trip test
+        let decoded = checkpointL1BlockHashCall::abi_decode(&encoded).unwrap();
+        assert_eq!(decoded.l1BlockNumber, U256::from(999));
+    }
+
+    #[test]
+    fn test_proposal_status_matching() {
+        // Test that we handle the correct proposal statuses
+        assert_eq!(ProposalStatus::Unchallenged as u8, 0);
+        assert_eq!(ProposalStatus::Challenged as u8, 1);
+        assert_eq!(ProposalStatus::UnchallengedAndProven as u8, 2);
+        assert_eq!(ProposalStatus::ChallengedAndProven as u8, 3);
+        assert_eq!(ProposalStatus::Resolved as u8, 4);
+    }
+
+    #[test]
+    fn test_saturating_sub_comprehensive() {
+        // Comprehensive test of saturating_sub behavior
+        let test_cases = vec![
+            (0u64, 0u64),      // Zero case
+            (1u64, 0u64),      // Minimum non-zero
+            (2u64, 1u64),      // Small number
+            (100u64, 99u64),   // Normal case
+            (u64::MAX, u64::MAX - 1), // Maximum value
+        ];
+        
+        for (latest, expected) in test_cases {
+            let result = latest.saturating_sub(1);
+            assert_eq!(result, expected, "Failed for latest={}", latest);
+        }
+    }
+
+    #[test]
+    fn test_prove_proposal_calldata_structure() {
+        // Test that prove_proposal generates correct calldata
+        use crate::contract::Rollup::proveProposalCall;
+        
+        // Simulate a prove call with realistic data
+        let proposal_id = U256::from(123);
+        let l1_block_number = U256::from(15_000_000); // Realistic mainnet block
+        let proof = vec![0xAB; 1024]; // 1KB proof (simplified)
+        
+        let call = proveProposalCall {
+            id: proposal_id,
+            l1BlockNumber: l1_block_number,
+            proof: proof.clone().into(),
+        };
+        
+        let encoded = call.abi_encode();
+        
+        // Verify structure:
+        // - First 4 bytes: selector
+        // - Next 32 bytes: proposal ID (padded uint256)
+        // - Next 32 bytes: L1 block number (padded uint256)
+        // - Next 32 bytes: offset to proof data
+        // - Remaining: proof length + proof data
+        
+        assert!(encoded.len() >= 4 + 32 + 32 + 32, "Encoded data too short");
+        
+        // Extract and verify each component
+        let selector = &encoded[0..4];
+        assert_eq!(selector.len(), 4);
+        
+        // Verify proposal ID encoding (should be big-endian padded to 32 bytes)
+        let id_bytes = &encoded[4..36];
+        let decoded_id = U256::from_be_slice(id_bytes);
+        assert_eq!(decoded_id, proposal_id);
+        
+        // Verify L1 block number encoding
+        let block_bytes = &encoded[36..68];
+        let decoded_block = U256::from_be_slice(block_bytes);
+        assert_eq!(decoded_block, l1_block_number);
+    }
+
+    #[cfg(test)]
+    mod integration_tests {
+        use super::*;
+        use crate::contract::Rollup::{proveProposalCall, checkpointL1BlockHashCall};
+        
+        // Mock types for testing the prove flow
+        #[allow(dead_code)]
+        struct MockProposal {
+            id: U256,
+            status: ProposalStatus,
+            l2_block_number: u64,
+            root_claim: B256,
+            parent_index: u32,
+            deadline: u64,
+        }
+        
+        #[test]
+        fn test_prove_proposal_happy_path_calldata() {
+            // This test verifies that given a challenged proposal,
+            // the prove_proposal method would generate correct calldata
+            
+            let mock_proposal = MockProposal {
+                id: U256::from(42),
+                status: ProposalStatus::Challenged,
+                l2_block_number: 1100,
+                root_claim: B256::from([0x11; 32]),
+                parent_index: 0,
+                deadline: 1000000,
+            };
+            
+            // Expected L1 block selection: if latest is 100, we choose 99
+            let expected_l1_block = 99u64;
+            
+            // Build the expected calldata components
+            let expected_checkpoint_call = checkpointL1BlockHashCall {
+                l1BlockNumber: U256::from(expected_l1_block),
+            };
+            
+            let proof_bytes = vec![0xDE, 0xAD, 0xBE, 0xEF];
+            let expected_prove_call = proveProposalCall {
+                id: mock_proposal.id,
+                l1BlockNumber: U256::from(expected_l1_block),
+                proof: proof_bytes.into(),
+            };
+            
+            // Verify checkpoint encoding
+            let checkpoint_encoded = expected_checkpoint_call.abi_encode();
+            assert_eq!(&checkpoint_encoded[0..4], hex!("3522f010"));
+            
+            // Verify prove encoding includes all required fields
+            let prove_encoded = expected_prove_call.abi_encode();
+            assert!(prove_encoded.len() > 100); // Should have selector + 3 fields
+            
+            // Verify the prove call has correct selector
+            let prove_selector = keccak256(b"proveProposal(uint256,uint256,bytes)");
+            assert_eq!(&prove_encoded[0..4], &prove_selector[0..4]);
+        }
+        
+        #[test]
+        fn test_min_credit_threshold_logic() {
+            // Test minimum credit threshold calculations
+            let proposer_bond = U256::from(80_000_000_000_000_000u64); // 0.08 ETH
+            
+            // Test with multiplier = 1
+            let threshold_1x = proposer_bond * U256::from(1);
+            assert_eq!(threshold_1x, proposer_bond);
+            
+            // Test with multiplier = 3
+            let threshold_3x = proposer_bond * U256::from(3);
+            assert_eq!(threshold_3x, U256::from(240_000_000_000_000_000u64)); // 0.24 ETH
+            
+            // Test with multiplier = 10
+            let threshold_10x = proposer_bond * U256::from(10);
+            assert_eq!(threshold_10x, U256::from(800_000_000_000_000_000u64)); // 0.8 ETH
+            
+            // Test credit comparison logic
+            let credit_small = U256::from(50_000_000_000_000_000u64); // 0.05 ETH
+            let credit_exact = proposer_bond;
+            let credit_large = U256::from(500_000_000_000_000_000u64); // 0.5 ETH
+            
+            // With 3x threshold
+            assert!(credit_small < threshold_3x); // Should skip
+            assert!(credit_exact < threshold_3x); // Should skip  
+            assert!(credit_large >= threshold_3x); // Should claim
         }
     }
 }

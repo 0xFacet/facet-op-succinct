@@ -57,6 +57,11 @@ pub struct RollupProposerConfig {
 
     /// Cycle limit passed to SP1 when generating a range proof.
     pub cycle_limit: u64,
+
+    /// Minimum credit threshold for claiming (as multiple of PROPOSER_BOND).
+    /// Only claim credit when balance >= min_credit_threshold_multiplier * PROPOSER_BOND.
+    /// This helps batch claims and reduce gas costs.
+    pub min_credit_threshold_multiplier: u64,
 }
 
 impl RollupProposerConfig {
@@ -93,6 +98,9 @@ impl RollupProposerConfig {
         let cycle_limit: u64 = env::var("SP1_CYCLE_LIMIT")
             .unwrap_or("100000000000".to_string())
             .parse()?;
+        let min_credit_threshold_multiplier: u64 = env::var("MIN_CREDIT_THRESHOLD_MULTIPLIER")
+            .unwrap_or("3".to_string())
+            .parse()?;
 
         let config = Self {
             l1_rpc,
@@ -109,6 +117,7 @@ impl RollupProposerConfig {
             metrics_port,
             range_proof_interval,
             cycle_limit,
+            min_credit_threshold_multiplier,
         };
 
         // Log all configuration values
@@ -127,6 +136,7 @@ impl RollupProposerConfig {
         tracing::info!("  Metrics Port: {}", config.metrics_port);
         tracing::info!("  Range Proof Interval: {}", config.range_proof_interval);
         tracing::info!("  SP1 Cycle Limit: {}", config.cycle_limit);
+        tracing::info!("  Min Credit Threshold Multiplier: {}", config.min_credit_threshold_multiplier);
 
         Ok(config)
     }

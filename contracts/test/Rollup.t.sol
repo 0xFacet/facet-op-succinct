@@ -2747,4 +2747,59 @@ contract RollupTest is Test {
     event AnchorUpdated(uint256 indexed proposalId, bytes32 root, uint128 l2BlockNumber);
     event ProposalClosed(uint256 indexed proposalId);
     event BlockProven(uint128 indexed l2BlockNumber, bytes32 root, address indexed prover);
+    
+    function testProposerCheckpointFlow() public {
+        // Test the proposer's checkpoint flow:
+        // 1. Submit and challenge a proposal
+        // 2. Checkpoint an L1 block
+        // 3. Prove the proposal using the checkpointed block
+        
+        // Submit proposal
+        vm.prank(proposer);
+        uint256 proposalId = rollup.submitProposal{value: PROPOSER_BOND}(
+            bytes32(uint256(200)),
+            1100,
+            0
+        );
+        
+        // Challenge it
+        vm.prank(challenger);
+        rollup.challengeProposal{value: CHALLENGER_BOND}(proposalId);
+        
+        // Move to a block where we want to checkpoint
+        vm.roll(150);
+        
+        // Checkpoint block 149 (latest - 1 for reorg protection)
+        rollup.checkpointL1BlockHash(149);
+        
+        // Verify checkpoint succeeded
+        bytes32 storedHash = rollup.l1BlockHashes(149);
+        assertEq(storedHash, blockhash(149));
+        
+        // Prove using checkpointed block
+        vm.prank(prover);
+        rollup.proveProposal(proposalId, 149, hex"00");
+        
+        // Verify proof was recorded
+        Rollup.Proposal memory prop = rollup.getProposal(proposalId);
+        assertEq(prop.prover, prover);
+        assertEq(uint8(prop.proposalStatus), uint8(Rollup.ProposalStatus.ChallengedAndProven));
+    }
+    
+    function testCheckpointAlreadyCheckpointed() public {
+        // Test that checkpointing an already checkpointed block is idempotent
+        uint256 targetBlock = block.number - 1;
+        
+        // First checkpoint
+        rollup.checkpointL1BlockHash(targetBlock);
+        bytes32 firstHash = rollup.l1BlockHashes(targetBlock);
+        
+        // Second checkpoint of same block (should not revert)
+        rollup.checkpointL1BlockHash(targetBlock);
+        bytes32 secondHash = rollup.l1BlockHashes(targetBlock);
+        
+        // Should have same hash
+        assertEq(firstHash, secondHash);
+        assertEq(firstHash, blockhash(targetBlock));
+    }
 }
