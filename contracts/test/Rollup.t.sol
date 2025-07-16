@@ -1335,7 +1335,7 @@ contract RollupTest is Test {
         assertEq(anchorBlockNum, l2BlockNum);
         
         // Check that a proposal was created and resolved
-        uint256 proposalId = rollup.canonicalProposalOf(l2BlockNum);
+        uint256 proposalId = rollup.canonicalProposalIdFor(l2BlockNum);
         assertGt(proposalId, 0); // Not genesis
         
         Rollup.Proposal memory proposal = rollup.getProposal(proposalId);
@@ -1443,21 +1443,22 @@ contract RollupTest is Test {
         );
         
         // Initially no canonical proposal
-        assertEq(rollup.canonicalProposalOf(1100), 0);
+        vm.expectRevert(Rollup.NoCanonicalProposal.selector);
+        rollup.canonicalProposalIdFor(1100);
         
         // Resolve first proposal
         vm.warp(block.timestamp + CHALLENGE_DURATION + 1);
         rollup.resolveProposal(id1);
         
         // Now it should be canonical
-        assertEq(rollup.canonicalProposalOf(1100), id1);
+        assertEq(rollup.canonicalProposalIdFor(1100), id1);
         assertEq(rollup.anchorL2BlockNumber(), 1100);
         
         // Resolve second proposal - should fail due to conflict
         rollup.resolveProposal(id2);
         
         // First proposal should still be canonical
-        assertEq(rollup.canonicalProposalOf(1100), id1);
+        assertEq(rollup.canonicalProposalIdFor(1100), id1);
         
         // Second proposal should have lost
         Rollup.Proposal memory p2 = rollup.getProposal(id2);
@@ -1499,7 +1500,7 @@ contract RollupTest is Test {
         
         // Resolve first - becomes canonical
         rollup.resolveProposal(id1);
-        assertEq(rollup.canonicalProposalOf(1100), id1);
+        assertEq(rollup.canonicalProposalIdFor(1100), id1);
         
         // Resolve second - should lose due to conflict even though proven
         rollup.resolveProposal(id2);
@@ -1601,9 +1602,9 @@ contract RollupTest is Test {
         assertEq(rollup.anchorL2BlockNumber(), 1300);
         
         // Each block should be canonical
-        assertGt(rollup.canonicalProposalOf(1100), 0);
-        assertGt(rollup.canonicalProposalOf(1200), 0);
-        assertGt(rollup.canonicalProposalOf(1300), 0);
+        assertGt(rollup.canonicalProposalIdFor(1100), 0);
+        assertGt(rollup.canonicalProposalIdFor(1200), 0);
+        assertGt(rollup.canonicalProposalIdFor(1300), 0);
     }
     
     // Bulk Invalidation Tests
@@ -1704,7 +1705,7 @@ contract RollupTest is Test {
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         
-        uint256 validityProposalId = rollup.canonicalProposalOf(1100);
+        uint256 validityProposalId = rollup.canonicalProposalIdFor(1100);
         
         // Submit fault proof proposal for block 1200 with validity proof as parent
         vm.prank(proposer);
@@ -1739,7 +1740,7 @@ contract RollupTest is Test {
         
         // Verify it worked correctly
         assertEq(rollup.anchorL2BlockNumber(), 1200);
-        uint256 validityProposalId = rollup.canonicalProposalOf(1200);
+        uint256 validityProposalId = rollup.canonicalProposalIdFor(1200);
         Rollup.Proposal memory validityProposal = rollup.getProposal(validityProposalId);
         assertEq(validityProposal.parentIndex, faultProposalId);
     }
@@ -1759,7 +1760,7 @@ contract RollupTest is Test {
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
-        uint256 validityId = rollup.canonicalProposalOf(1100);
+        uint256 validityId = rollup.canonicalProposalIdFor(1100);
         
         // Verify validity proof became canonical
         assertGt(validityId, 0);
@@ -1771,7 +1772,7 @@ contract RollupTest is Test {
         rollup.proveProposal(faultId, block.number - 1, hex"00");
         
         // Canonical should still be validity proof
-        assertEq(rollup.canonicalProposalOf(1100), validityId);
+        assertEq(rollup.canonicalProposalIdFor(1100), validityId);
     }
     
     function testResolvedFaultProofCannotBecomeCanonicalAfterValidityProof() public {
@@ -1788,7 +1789,7 @@ contract RollupTest is Test {
         rollup.resolveProposal(faultId);
         
         // Initially it's canonical
-        assertEq(rollup.canonicalProposalOf(1100), faultId);
+        assertEq(rollup.canonicalProposalIdFor(1100), faultId);
         
         // Try to submit validity proof for block 1100
         // This will fail because the block is already anchored
@@ -1797,7 +1798,7 @@ contract RollupTest is Test {
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
         // The fault proof remains canonical
-        assertEq(rollup.canonicalProposalOf(1100), faultId);
+        assertEq(rollup.canonicalProposalIdFor(1100), faultId);
     }
     
     // Bond Distribution Edge Cases
@@ -1807,7 +1808,7 @@ contract RollupTest is Test {
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         
-        uint256 proposalId = rollup.canonicalProposalOf(1100);
+        uint256 proposalId = rollup.canonicalProposalIdFor(1100);
         Rollup.Proposal memory p = rollup.getProposal(proposalId);
         
         // Verify proposer is address(0)
@@ -1938,7 +1939,7 @@ contract RollupTest is Test {
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
         // Verify validity proof takes precedence
-        uint256 canonicalId = rollup.canonicalProposalOf(1100);
+        uint256 canonicalId = rollup.canonicalProposalIdFor(1100);
         assertNotEq(canonicalId, faultId);
         
         // Resolve fault proof - should be CHALLENGER_WINS
@@ -1982,7 +1983,7 @@ contract RollupTest is Test {
         
         // Verify it succeeded
         assertEq(rollup.anchorL2BlockNumber(), 1100);
-        assertEq(rollup.getProposal(rollup.canonicalProposalOf(1100)).prover, nonWhitelisted);
+        assertEq(rollup.getProposal(rollup.canonicalProposalIdFor(1100)).prover, nonWhitelisted);
     }
     
     function testProveBlockMustBuildOnAnchor() public {
@@ -2074,7 +2075,7 @@ contract RollupTest is Test {
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         
-        uint256 proposalId = rollup.canonicalProposalOf(1100);
+        uint256 proposalId = rollup.canonicalProposalIdFor(1100);
         Rollup.Proposal memory p = rollup.getProposal(proposalId);
         
         // Verify proposer is address(0)
@@ -2210,7 +2211,7 @@ contract RollupTest is Test {
     
     function testGenesisCanonicalMapping() public {
         // Test gap 1: Ensure genesis block has a canonical proposal
-        uint256 genesisCanonicalId = rollup.canonicalProposalOf(1000);
+        uint256 genesisCanonicalId = rollup.canonicalProposalIdFor(1000);
         assertEq(genesisCanonicalId, 0); // Genesis is proposal 0
         
         // Verify genesis proposal exists and is resolved
@@ -2269,7 +2270,7 @@ contract RollupTest is Test {
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         
-        uint256 validityProposalId = rollup.canonicalProposalOf(1100);
+        uint256 validityProposalId = rollup.canonicalProposalIdFor(1100);
         
         // Try to challenge it - should fail with GameNotOver
         vm.prank(challenger);

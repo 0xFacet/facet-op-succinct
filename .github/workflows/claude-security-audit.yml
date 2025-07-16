@@ -93,10 +93,11 @@ jobs:
           
           # Run Slither on contracts
           echo "### Slither Analysis" >> $GITHUB_STEP_SUMMARY
-          cd contracts && slither . --print human-summary >> $GITHUB_STEP_SUMMARY 2>&1 || echo "⚠️ Slither analysis failed" >> $GITHUB_STEP_SUMMARY
+          # Point slither directly to the 'contracts' directory
+          slither contracts --print human-summary >> $GITHUB_STEP_SUMMARY 2>&1 || echo "⚠️ Slither analysis failed" >> $GITHUB_STEP_SUMMARY
           
-          # Generate SARIF output for GitHub Security tab
-          cd contracts && slither . --sarif slither.sarif || true
+          # Generate SARIF output inside the 'contracts' directory
+          slither contracts --sarif contracts/slither.sarif || true
 
       - name: Run Claude Security Audit
         id: claude-security-audit
