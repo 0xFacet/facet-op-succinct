@@ -10,6 +10,10 @@ on:
   pull_request_review:
     types: [submitted]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+    
 jobs:
   claude:
     if: |
@@ -40,25 +44,53 @@ jobs:
           additional_permissions: |
             actions: read
           
-          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
-          # model: "claude-opus-4-20250514"
+          # Use Claude Opus 4 for complex zkEVM tasks
+          model: "claude-opus-4-20250514"
           
-          # Optional: Customize the trigger phrase (default: @claude)
-          # trigger_phrase: "/claude"
-          
-          # Optional: Trigger when specific user is assigned to an issue
-          # assignee_trigger: "claude-bot"
-          
-          # Optional: Allow Claude to run specific commands
-          # allowed_tools: "Bash(npm install),Bash(npm run build),Bash(npm run test:*),Bash(npm run lint:*)"
-          
-          # Optional: Add custom instructions for Claude to customize its behavior for your project
-          # custom_instructions: |
-          #   Follow our coding standards
-          #   Ensure all new code has tests
-          #   Use TypeScript for new files
-          
-          # Optional: Custom environment variables for Claude
-          # claude_env: |
-          #   NODE_ENV: test
-
+          # Allow Claude to run project-specific commands
+          allowed_tools: |
+            Bash(ls:*),
+            Bash(pwd:*),
+            Bash(cat:*),
+            Bash(head:*),
+            Bash(tail:*),
+            Bash(rg:*),
+            Bash(find:*),
+            Bash(jq:*),
+            Bash(wc:*),
+            Bash(awk:*),
+            Read,
+            Write,
+            Edit,
+            MultiEdit,
+            Grep,
+            Glob,
+            LS,
+            WebSearch,
+            WebFetch
+          custom_instructions: |
+            You are reviewing code for a modified version of OP Succinct that integrates fault and validity proofs in a single contract.
+            
+            Please review this pull request with special attention to:
+            
+            **For Rust code (*.rs):**
+            - Memory safety and potential panics in zkVM programs
+            - Correctness of proof generation logic
+            - Performance optimizations for SP1 circuits
+            - Proper error handling in fault-proof components
+            - Integration with Kona (v1.0.1) for state transitions
+            
+            **For Solidity contracts (*.sol):**
+            - Security vulnerabilities (reentrancy, overflow, access control)
+            - Gas optimization opportunities
+            - Correct handling of bonds and game resolution
+            - Proper verification of ZK proofs on-chain
+            
+            **General concerns:**
+            - Cryptographic correctness and security
+            - Proper handling of L1/L2 state synchronization
+            - Test coverage for critical paths
+            
+            Context: This system handles millions of dollars in bonds and must maintain perfect correctness to prevent invalid state transitions on L2.
+            
+            Be thorough but constructive. Prioritize security and correctness issues.
