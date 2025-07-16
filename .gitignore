@@ -46,4 +46,4 @@ contracts/opsuccinctl2ooconfig.json
 configs/
 
 node_modules/
-go-ffi
+go-ffi-bin

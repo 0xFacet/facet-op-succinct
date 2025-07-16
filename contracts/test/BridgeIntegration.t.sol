@@ -245,6 +245,21 @@ contract BridgeIntegrationTest is Test {
     }
 
     /**
+     * @notice Test deposit with minimum viable amount (1 wei)
+     */
+    function testDepositMinimumAmount() public {
+        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l1Bridge.setL2Bridge(address(l2Bridge));
+
+        // Test that 1 wei deposit works
+        vm.expectEmit(true, true, true, true);
+        emit DepositInitiated(user, user, 1);
+        
+        vm.prank(user);
+        l1Bridge.initiateDeposit{value: 1}();
+    }
+
+    /**
      * @notice Test deposit without L2 bridge set
      */
     function testDepositWithoutL2Bridge() public {
@@ -274,11 +289,12 @@ contract BridgeIntegrationTest is Test {
 
         // User initiates withdrawal
         uint256 withdrawAmount = 2 ether;
+        
+        // Get the nonce that will be used (before the withdrawal)
+        uint256 nonce = messagePasser.messageNonce();
+        
         vm.prank(user);
         l2Bridge.initiateWithdrawal(user, withdrawAmount);
-
-        // The nonce used was the first one (0) with version 1
-        uint256 nonce = 1766847064778384329583297500742918515827483896875618958121606201292619775;
 
         // Get the withdrawal hash that the L1 bridge will calculate
         // L1ETHBridge uses Hashing.hashWithdrawal which does keccak256(abi.encode(nonce, sender, target, value, gasLimit, data))
@@ -373,11 +389,11 @@ contract BridgeIntegrationTest is Test {
         vm.prank(aliasedL1);
         l2Bridge.finalizeDeposit(user, 5 ether);
 
+        // Get the nonce before withdrawal
+        uint256 nonce = messagePasser.messageNonce();
+        
         vm.prank(user);
         l2Bridge.initiateWithdrawal(user, 1 ether);
-
-        // The withdrawal was the first one, so it used the initial nonce with version 1
-        uint256 nonce = 1766847064778384329583297500742918515827483896875618958121606201292619775;
 
         // Generate withdrawal hash and proof
         bytes32 withdrawalHash = keccak256(abi.encode(
@@ -419,14 +435,14 @@ contract BridgeIntegrationTest is Test {
         vm.prank(aliasedL1);
         l2Bridge.finalizeDeposit(user, 5 ether);
 
+        // Get the nonce before withdrawal
+        uint256 nonce = messagePasser.messageNonce();
+        
         vm.prank(user);
         l2Bridge.initiateWithdrawal(user, 1 ether);
 
         // Fund the L1 bridge
         vm.deal(address(l1Bridge), 10 ether);
-
-        // The withdrawal was the first one, so it used the initial nonce with version 1
-        uint256 nonce = 1766847064778384329583297500742918515827483896875618958121606201292619775;
         
         // Generate withdrawal hash and proof
         bytes32 withdrawalHash = keccak256(abi.encode(
@@ -452,6 +468,98 @@ contract BridgeIntegrationTest is Test {
         // Second finalization should fail
         vm.expectRevert(L1ETHBridge.WithdrawalAlreadyFinalised.selector);
         l1Bridge.finaliseWithdrawal(user, 1 ether, nonce);
+    }
+
+    /**
+     * @notice Test withdrawal proof with invalid output root
+     */
+    function testWithdrawalInvalidOutputRoot() public {
+        messagePasser = new L2ToL1MessagePasser();
+        vm.etch(0x4200000000000000000000000000000000000016, address(messagePasser).code);
+
+        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l1Bridge.setL2Bridge(address(l2Bridge));
+
+        // Setup
+        address aliasedL1 = AddressAliasHelper.applyL1ToL2Alias(address(l1Bridge));
+        vm.prank(aliasedL1);
+        l2Bridge.finalizeDeposit(user, 5 ether);
+
+        // Get the nonce before withdrawal
+        uint256 nonce = messagePasser.messageNonce();
+        
+        vm.prank(user);
+        l2Bridge.initiateWithdrawal(user, 1 ether);
+
+        // Generate withdrawal hash and proof
+        bytes32 withdrawalHash = keccak256(abi.encode(
+            nonce,
+            address(l2Bridge),
+            address(l1Bridge),
+            uint256(0),
+            uint256(0),
+            abi.encode(user, 1 ether)
+        ));
+        
+        (bytes32 storageRoot, bytes[] memory withdrawalProof) = FFIProofGenerator.generateWithdrawalProof(withdrawalHash);
+        
+        // Create a valid output root proof
+        Types.OutputRootProof memory validOutputRootProof = _generateOutputRootProof(storageRoot);
+
+        // Create canonical proposal with a DIFFERENT output root
+        bytes32 wrongOutputRoot = keccak256("completely wrong output root");
+        uint256 proposalId = _createCanonicalProposal(GENESIS_BLOCK + uint128(PROPOSAL_INTERVAL), wrongOutputRoot);
+
+        // Try to prove withdrawal - should fail because the output root doesn't match the proposal
+        vm.expectRevert(L1ETHBridge.InvalidOutputRoot.selector);
+        l1Bridge.proveWithdrawal(user, 1 ether, nonce, proposalId, validOutputRootProof, withdrawalProof);
+    }
+
+    /**
+     * @notice Test withdrawal proof with invalid merkle proof
+     */
+    function testWithdrawalInvalidMerkleProof() public {
+        messagePasser = new L2ToL1MessagePasser();
+        vm.etch(0x4200000000000000000000000000000000000016, address(messagePasser).code);
+
+        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l1Bridge.setL2Bridge(address(l2Bridge));
+
+        // Setup
+        address aliasedL1 = AddressAliasHelper.applyL1ToL2Alias(address(l1Bridge));
+        vm.prank(aliasedL1);
+        l2Bridge.finalizeDeposit(user, 5 ether);
+
+        // Get the nonce before withdrawal
+        uint256 nonce = messagePasser.messageNonce();
+        
+        vm.prank(user);
+        l2Bridge.initiateWithdrawal(user, 1 ether);
+
+        // Generate withdrawal hash for a DIFFERENT withdrawal
+        bytes32 wrongWithdrawalHash = keccak256(abi.encode(
+            nonce,
+            address(l2Bridge),
+            address(l1Bridge),
+            uint256(0),
+            uint256(0),
+            abi.encode(user, 2 ether)  // Different amount
+        ));
+        
+        // Get proof for the wrong withdrawal (which doesn't exist)
+        (bytes32 storageRoot, bytes[] memory wrongWithdrawalProof) = FFIProofGenerator.generateWithdrawalProof(wrongWithdrawalHash);
+        
+        // Create a valid output root proof
+        Types.OutputRootProof memory outputRootProof = _generateOutputRootProof(storageRoot);
+        bytes32 outputRoot = Hashing.hashOutputRootProof(outputRootProof);
+
+        // Create canonical proposal
+        uint256 proposalId = _createCanonicalProposal(GENESIS_BLOCK + uint128(PROPOSAL_INTERVAL), outputRoot);
+
+        // Try to prove the ACTUAL withdrawal with the WRONG proof
+        // SecureMerkleTrie will revert with its own error
+        vm.expectRevert("MerkleTrie: path remainder must share all nibbles with key");
+        l1Bridge.proveWithdrawal(user, 1 ether, nonce, proposalId, outputRootProof, wrongWithdrawalProof);
     }
 
     /**
@@ -486,11 +594,11 @@ contract BridgeIntegrationTest is Test {
         // Fund the L1 bridge
         vm.deal(address(l1Bridge), 10 ether);
 
+        // Get the nonce before withdrawal
+        uint256 nonce = messagePasser.messageNonce();
+        
         vm.prank(address(reentrant));
         l2Bridge.initiateWithdrawal(address(reentrant), 1 ether);
-
-        // The withdrawal uses the current nonce from L2ToL1MessagePasser (first withdrawal uses the initial nonce)
-        uint256 nonce = 1766847064778384329583297500742918515827483896875618958121606201292619776;
         
         // Generate withdrawal hash and proof
         bytes32 withdrawalHash = keccak256(abi.encode(
