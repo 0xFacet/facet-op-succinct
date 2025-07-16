@@ -36,6 +36,21 @@ pub enum ProposerGauge {
         message = "Total number of bonds claimed by the proposer"
     )]
     BondsClaimed,
+    #[strum(
+        serialize = "op_succinct_fp_claims_skipped_threshold",
+        message = "Total number of claims skipped due to minimum threshold"
+    )]
+    ClaimsSkippedThreshold,
+    #[strum(
+        serialize = "op_succinct_fp_checkpoint_attempts",
+        message = "Total number of L1 block checkpoint attempts"
+    )]
+    CheckpointAttempts,
+    #[strum(
+        serialize = "op_succinct_fp_checkpoint_failures",
+        message = "Total number of L1 block checkpoint failures"
+    )]
+    CheckpointFailures,
     // Error metrics
     #[strum(
         serialize = "op_succinct_fp_proposal_creation_error",
