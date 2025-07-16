@@ -54,7 +54,6 @@ jobs:
             Bash(cat:*),
             Bash(head:*),
             Bash(tail:*),
-            Bash(grep:*),
             Bash(rg:*),
             Bash(find:*),
             Bash(jq:*),
