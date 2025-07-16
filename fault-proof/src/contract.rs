@@ -93,7 +93,7 @@ sol! {
         function getProposalsLength() external view returns (uint256);
         function isResolvable(uint256 proposalId) external view returns (bool);
         function needsDefense(uint256 proposalId) external view returns (bool);
-        function anchorProposalId() external view returns (uint256);
+        function anchorProposalId() external view returns (uint32);
         function canonicalProposalIdFor(uint256 l2BlockNumber) external view returns (uint32);
         function canonicalProposalFor(uint256 l2BlockNumber) external view returns (Proposal memory);
         function isWhitelistedProposer(address proposer) external view returns (bool);
