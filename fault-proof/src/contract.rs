@@ -31,6 +31,7 @@ sol! {
         error BlockAlreadyProven();
         error L1BlockHashNotAvailable();
         error L1BlockHashNotCheckpointed();
+        error NoCanonicalProposal();
 
         // Enums
         enum ResolutionStatus { IN_PROGRESS, DEFENDER_WINS, CHALLENGER_WINS }
@@ -63,7 +64,6 @@ sol! {
         mapping(address => uint256) public credit;
         mapping(address => bool) public whitelistedProposer;
         mapping(uint256 => bytes32) public l1BlockHashes;
-        mapping(uint256 => uint32) public canonicalProposalOf;
         
         struct Proposal {
             bytes32 rootClaim;
@@ -94,6 +94,8 @@ sol! {
         function isResolvable(uint256 proposalId) external view returns (bool);
         function needsDefense(uint256 proposalId) external view returns (bool);
         function anchorProposalId() external view returns (uint256);
+        function canonicalProposalIdFor(uint256 l2BlockNumber) external view returns (uint32);
+        function canonicalProposalFor(uint256 l2BlockNumber) external view returns (Proposal memory);
         function isWhitelistedProposer(address proposer) external view returns (bool);
         function isInFallbackWindow(uint256 l2BlockNumber) external view returns (bool);
 

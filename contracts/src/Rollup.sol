@@ -83,6 +83,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     error BlockAlreadyProven();
     error L1BlockHashNotAvailable();
     error L1BlockHashNotCheckpointed();
+    error NoCanonicalProposal();
 
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
@@ -133,9 +134,10 @@ contract Rollup is Ownable, ReentrancyGuard {
     mapping(uint256 => bytes32) public l1BlockHashes;
 
     // Maps L2 block number to the canonical proposal ID
-    // Note: 0 indicates no canonical proposal, but proposal 0 is the genesis proposal
-    // This works because genesis is always canonical for its block (set in constructor)
-    mapping(uint256 => uint32) public canonicalProposalOf;
+    // 0 means no canonical proposal exists (uninitialized storage)
+    // type(uint32).max means proposal 0 (genesis) is canonical
+    uint32 private constant GENESIS_SENTINEL = type(uint32).max;
+    mapping(uint256 => uint32) private _canonical;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
@@ -188,9 +190,8 @@ contract Rollup is Ownable, ReentrancyGuard {
         });
         
         proposals.push(genesis);
-        // Genesis is proposal 0 and canonical for the starting block
-        // This is the only case where canonicalProposalOf[block] == 0 is valid
-        canonicalProposalOf[_startBlock] = 0;
+
+        _trySetCanonical(_startBlock, 0);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -215,7 +216,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         if (l2BlockNumber <= anchorL2BlockNumber) revert ProposingBackwards();
         if (computeL2Timestamp(l2BlockNumber) >= block.timestamp) revert ProposingFutureBlock();
         
-        if (canonicalProposalOf[l2BlockNumber] != 0) revert BlockAlreadyProven();
+        if (_canonicalExistsFor(l2BlockNumber)) revert BlockAlreadyProven();
         
         // Proposals must follow the exact interval cadence from their parent
         if (l2BlockNumber != parent.l2BlockNumber + PROPOSAL_INTERVAL) {
@@ -293,7 +294,8 @@ contract Rollup is Ownable, ReentrancyGuard {
         bytes calldata proof
     ) external {
         // Validity proofs must build directly on the anchor to ensure linear progression
-        uint32 parentProposalId = canonicalProposalOf[anchorL2BlockNumber];
+        // Anchor always has a canonical (genesis at minimum)
+        uint32 parentProposalId = anchorProposalId();
         
         // address(0) proposer indicates no bond was collected
         uint256 proposalId = _createProposal({
@@ -368,7 +370,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         Proposal storage p = proposals[proposalId];
         return p.deadline < block.timestamp || 
                p.prover != address(0) ||
-               canonicalProposalOf[p.l2BlockNumber] != 0;
+               _canonicalExistsFor(p.l2BlockNumber);
     }
 
     /// @notice Calculate how long ago an L2 block should have been created
@@ -438,9 +440,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         
         if (p.resolutionStatus == ResolutionStatus.DEFENDER_WINS) {
             // Mark as canonical if not already set by validity proof
-            if (canonicalProposalOf[p.l2BlockNumber] == 0) {
-                canonicalProposalOf[p.l2BlockNumber] = uint32(id);
-            }
+            _trySetCanonical(p.l2BlockNumber, uint32(id));
             
             // Advance anchor only if this directly extends it
             if (p.l2BlockNumber == anchorL2BlockNumber + PROPOSAL_INTERVAL) {
@@ -454,8 +454,10 @@ contract Rollup is Ownable, ReentrancyGuard {
             address recipient = p.challenger;
             if (recipient == address(0)) {
                 // Bulk invalidation case: pay canonical prover who proved correct root
-                uint32 canonicalId = canonicalProposalOf[p.l2BlockNumber];
-                recipient = _getProposalProver(proposals[canonicalId]);
+                // If no canonical exists yet, bond is burned (recipient remains address(0))
+                if (_canonicalExistsFor(p.l2BlockNumber)) {
+                    recipient = _getProposalProver(_canonicalProposalFor(p.l2BlockNumber));
+                }
             }
             _pay(recipient, _totalBond(p));
         }
@@ -502,9 +504,8 @@ contract Rollup is Ownable, ReentrancyGuard {
             return p.prover;
         }
         
-        uint32 canonicalId = canonicalProposalOf[p.l2BlockNumber];
-        if (canonicalId != 0) {
-            Proposal storage canonical = proposals[canonicalId];
+        if (_canonicalExistsFor(p.l2BlockNumber)) {
+            Proposal storage canonical = _canonicalProposalFor(p.l2BlockNumber);
             return canonical.prover != address(0) ? canonical.prover : canonical.proposer;
         }
         
@@ -513,8 +514,8 @@ contract Rollup is Ownable, ReentrancyGuard {
     
     /// @dev Check if proposal has wrong root compared to canonical
     function _proposalConflictsWithCanonical(Proposal storage p) internal view returns (bool) {
-        uint32 canonicalId = canonicalProposalOf[p.l2BlockNumber];
-        return canonicalId != 0 && proposals[canonicalId].rootClaim != p.rootClaim;
+        return _canonicalExistsFor(p.l2BlockNumber) && 
+               _canonicalProposalFor(p.l2BlockNumber).rootClaim != p.rootClaim;
     }
 
 
@@ -578,8 +579,8 @@ contract Rollup is Ownable, ReentrancyGuard {
     /// @notice Get the current anchor's output root
     /// @return Output root of the anchor block
     function anchorRoot() public view returns (bytes32) {
-        uint32 canonicalId = canonicalProposalOf[anchorL2BlockNumber];
-        return proposals[canonicalId].rootClaim;
+        // Anchor always has a canonical proposal (genesis at minimum)
+        return _canonicalProposalFor(anchorL2BlockNumber).rootClaim;
     }
 
     /// @notice Get a single proposal
@@ -639,7 +640,49 @@ contract Rollup is Ownable, ReentrancyGuard {
     
     /// @notice Get the canonical proposal ID for the anchor block
     /// @return Proposal ID of current anchor
-    function anchorProposalId() external view returns (uint256) {
-        return canonicalProposalOf[anchorL2BlockNumber];
+    function anchorProposalId() public view returns (uint32) {
+        return canonicalProposalIdFor(anchorL2BlockNumber);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                     CANONICAL PROPOSAL HELPERS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Get the canonical proposal for an L2 block
+    /// @param l2BlockNumber The L2 block number
+    /// @return The canonical proposal, or empty proposal if none exists
+    function canonicalProposalFor(uint256 l2BlockNumber) public view returns (Proposal memory) {
+        if (!_canonicalExistsFor(l2BlockNumber)) revert NoCanonicalProposal();
+        
+        uint32 canonicalId = canonicalProposalIdFor(l2BlockNumber);
+        return proposals[canonicalId];
+    }
+
+    /// @notice Get the canonical proposal ID for an L2 block
+    /// @param l2BlockNumber The L2 block number
+    /// @return The canonical proposal ID, or 0 if none exists
+    function canonicalProposalIdFor(uint256 l2BlockNumber) public view returns (uint32) {
+        if (!_canonicalExistsFor(l2BlockNumber)) revert NoCanonicalProposal();
+        
+        return _canonical[l2BlockNumber] == GENESIS_SENTINEL ? 0 : _canonical[l2BlockNumber];
+    }
+
+    /// @dev Get the canonical proposal storage reference (reverts if doesn't exist)
+    function _canonicalProposalFor(uint256 l2BlockNumber) internal view returns (Proposal storage) {
+        uint32 canonicalId = canonicalProposalIdFor(l2BlockNumber);
+        
+        return proposals[canonicalId];
+    }
+
+    /// @dev Check if a canonical proposal exists for an L2 block
+    function _canonicalExistsFor(uint256 l2BlockNumber) internal view returns (bool) {
+        return _canonical[l2BlockNumber] != 0;
+    }
+
+    /// @dev Try to set the canonical proposal for an L2 block (only sets if not already set)
+    function _trySetCanonical(uint256 l2BlockNumber, uint32 proposalId) internal {
+        if (!_canonicalExistsFor(l2BlockNumber)) {
+            _canonical[l2BlockNumber] = proposalId == 0 ? GENESIS_SENTINEL : proposalId;
+        }
     }
 }
