@@ -668,6 +668,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     }
     
     function proposalIsCanonical(uint256 proposalId) public view returns (bool) {
+        if (proposalId >= proposals.length) return false;
         Proposal storage p = proposals[proposalId];
         return _canonicalExistsFor(p.l2BlockNumber) && proposalId == canonicalProposalIdFor(p.l2BlockNumber);
     }
