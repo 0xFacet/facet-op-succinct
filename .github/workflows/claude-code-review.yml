@@ -97,7 +97,3 @@ jobs:
             WebSearch,
             WebFetch
           
-          # Additional permissions for reading CI results
-          additional_permissions: |
-            actions: read
-

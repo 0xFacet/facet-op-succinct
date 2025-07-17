@@ -1,18 +1,6 @@
 name: Claude Security Audit
 
 on:
-  pull_request:
-    types: [opened, synchronize]
-    # Only run on security-critical paths
-    paths:
-      - "contracts/**/*.sol"
-      - "programs/range/**/*.rs"
-      - "programs/aggregation/**/*.rs"
-      - "fault-proof/**/proposer.rs"
-      - "fault-proof/**/challenger.rs"
-      - "utils/host/**/proof.rs"
-      - "utils/client/**/proof.rs"
-  # Manual trigger for comprehensive audits
   workflow_dispatch:
     inputs:
       target_branch:
@@ -21,17 +9,15 @@ on:
         default: 'main'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.inputs.target_branch || github.ref }}
   cancel-in-progress: true
         
 jobs:
   security-audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     permissions:
       contents: read
-      pull-requests: read
-      issues: read
       id-token: write
       actions: read
       security-events: write  # For security findings
@@ -40,6 +26,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.inputs.target_branch }}
           fetch-depth: 0
           submodules: recursive
 
@@ -168,8 +155,8 @@ jobs:
             Grep,
             Glob
           
-          # Use sticky comments for tracking fixes
-          use_sticky_comment: true
+          # Use sticky comments for tracking fixes (disabled for manual runs)
+          use_sticky_comment: false
           
           # Security-focused environment
           claude_env: |
