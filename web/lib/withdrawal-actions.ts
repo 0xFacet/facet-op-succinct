@@ -4,7 +4,9 @@ import {
   type Hex,
   keccak256,
   encodeAbiParameters,
-  parseAbiParameters
+  parseAbiParameters,
+  decodeAbiParameters,
+  decodeEventLog
 } from 'viem'
 import { l1PublicClient, l2PublicClient, config } from './config'
 import { ROLLUP_ABI, L1_ETH_BRIDGE_ABI, L2_TO_L1_MESSAGE_PASSER_ABI, L2_TO_L1_MESSAGE_PASSER_ADDRESS } from './contracts'
@@ -21,46 +23,63 @@ export interface WithdrawalData {
 export async function getWithdrawalDataFromTx(txHash: Hash): Promise<WithdrawalData> {
   const receipt = await l2PublicClient.getTransactionReceipt({ hash: txHash })
   
-  // Find the withdrawal log - it has specific topics
-  const withdrawalLog = receipt.logs.find(log => 
-    log.address.toLowerCase() === L2_TO_L1_MESSAGE_PASSER_ADDRESS.toLowerCase() &&
-    log.topics.length >= 2
+  // Find the MessagePassed event log
+  const messagePassedEvent = {
+    type: 'event' as const,
+    name: 'MessagePassed',
+    inputs: L2_TO_L1_MESSAGE_PASSER_ABI.find(abi => abi.name === 'MessagePassed')!.inputs
+  }
+  
+  const logs = receipt.logs.filter(log => 
+    log.address.toLowerCase() === L2_TO_L1_MESSAGE_PASSER_ADDRESS.toLowerCase()
   )
   
-  if (!withdrawalLog) {
+  if (logs.length === 0) {
     throw new Error('No withdrawal found in transaction')
   }
-
-  // Decode withdrawal data from log
-  const to = `0x${withdrawalLog.topics[1]?.slice(26)}` as Address
-  const amount = BigInt(withdrawalLog.topics[2] || 0)
   
-  // Get nonce from reading contract at the block after withdrawal
-  const nonce = await l2PublicClient.readContract({
-    address: L2_TO_L1_MESSAGE_PASSER_ADDRESS,
-    abi: L2_TO_L1_MESSAGE_PASSER_ABI,
-    functionName: 'messageNonce',
-    blockNumber: receipt.blockNumber
-  }) - 1n // Subtract 1 since nonce increments after
-
-  // Calculate withdrawal hash
-  const l2BridgeAddress = await l1PublicClient.readContract({
-    address: config.l1ETHBridgeAddress,
-    abi: L1_ETH_BRIDGE_ABI,
-    functionName: 'l2Bridge'
-  })
-
-  const withdrawalHash = hashWithdrawal({
-    nonce,
-    sender: l2BridgeAddress,
-    target: config.l1ETHBridgeAddress,
-    value: 0n,
-    gasLimit: 0n,
-    data: encodeAbiParameters(
-      parseAbiParameters('address, uint256'),
-      [to, amount]
-    )
-  })
+  // Decode the MessagePassed event
+  let eventData: {
+    eventName: 'MessagePassed'
+    args: {
+      nonce: bigint
+      sender: Address
+      target: Address
+      value: bigint
+      gasLimit: bigint
+      data: Hex
+      withdrawalHash: Hash
+    }
+  } | null = null
+  
+  for (const log of logs) {
+    try {
+      const decoded = decodeEventLog({
+        abi: [messagePassedEvent],
+        data: log.data,
+        topics: log.topics
+      })
+      eventData = decoded as any
+      break
+    } catch {
+      // Continue to next log
+    }
+  }
+  
+  if (!eventData) {
+    throw new Error('Failed to decode MessagePassed event')
+  }
+  
+  // Extract data from the event - no need to calculate nonce!
+  const nonce = eventData.args.nonce
+  const withdrawalHash = eventData.args.withdrawalHash
+  const data = eventData.args.data
+  
+  // Decode the withdrawal data to get recipient and amount
+  const [to, amount] = decodeAbiParameters(
+    parseAbiParameters('address, uint256'),
+    data
+  )
 
   return { to, amount, nonce, withdrawalHash }
 }

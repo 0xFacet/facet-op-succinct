@@ -148,11 +148,16 @@ export function useCrossDomainMessage({
               }
             }
             
-            // Update last checked block for next poll
-            lastCheckedBlockRef.current = currentBlock + 1n
+            // Advance window & manage back-off
+            if (currentBlock > lastCheckedBlockRef.current) {
+              // Chain moved forward → shift the window and reset back-off
+              lastCheckedBlockRef.current = currentBlock + 1n
+              attempt = 0
+            } else {
+              // No progress → increase back-off delay
+              attempt++
+            }
             
-            // Continue polling with exponential backoff
-            attempt++
             const delay = Math.min(1000 * Math.pow(2, attempt), 8000)
             
             if (!signal.aborted) {
