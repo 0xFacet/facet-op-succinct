@@ -6,6 +6,7 @@ import {
   type Hash,
   formatEther,
   encodeAbiParameters,
+  decodeAbiParameters,
   keccak256,
   decodeEventLog,
   parseAbiParameters
@@ -83,18 +84,23 @@ async function main() {
       throw new Error('No withdrawal found in transaction');
     }
 
-    // Parse withdrawal data
-    const to = `0x${withdrawalLog.topics[1]?.slice(26)}` as Address;
-    const amount = BigInt(withdrawalLog.topics[2] || 0);
+    // MessagePassed event has indexed parameters: nonce, sender, target
+    // The nonce is the first topic (after the event signature)
+    const nonce = BigInt(withdrawalLog.topics[1]!);
     
-    // Get nonce
-    const messageNonce = await l2Client.readContract({
-      address: L2_TO_L1_MESSAGE_PASSER_ADDRESS,
-      abi: [{ name: 'messageNonce', type: 'function', inputs: [], outputs: [{ type: 'uint256' }], stateMutability: 'view' }],
-      functionName: 'messageNonce',
-      blockNumber: receipt.blockNumber
-    });
-    const nonce = messageNonce - 1n; // Previous nonce
+    // Decode the non-indexed data
+    const decoded = decodeAbiParameters(
+      parseAbiParameters('uint256 value, uint256 gasLimit, bytes data, bytes32 withdrawalHash'),
+      withdrawalLog.data as `0x${string}`
+    );
+    
+    const data = decoded[2]; // Get the data field which contains to/amount
+    
+    // Extract recipient and amount from the data field
+    const [to, amount] = decodeAbiParameters(
+      parseAbiParameters('address, uint256'),
+      data
+    );
     
     console.log(`To: ${to}`);
     console.log(`Amount: ${formatEther(amount)} ETH`);
