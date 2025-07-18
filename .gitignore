@@ -47,3 +47,8 @@ configs/
 
 node_modules/
 go-ffi-bin
+
+contracts/dependencies/
+contracts/lib/facet-sol/
+
+.DS_Store

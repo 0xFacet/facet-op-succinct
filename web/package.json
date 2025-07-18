@@ -1,0 +1,36 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "prove-from-tx": "tsx scripts/prove-from-tx.ts",
+    "prove-withdraw": "tsx scripts/prove-and-withdraw.ts",
+    "example:sepolia": "tsx scripts/prove-and-finalize-sepolia.ts",
+    "example:complete": "tsx scripts/complete-withdrawal-flow.ts"
+  },
+  "dependencies": {
+    "@0xfacet/sdk": "^0.4.8",
+    "@rainbow-me/rainbowkit": "^2.2.8",
+    "@tanstack/react-query": "^5.83.0",
+    "next": "15.4.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "viem": "^2.32.0",
+    "wagmi": "^2.15.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^24.0.14",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^17.2.0",
+    "pino-pretty": "^13.0.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.20.3",
+    "typescript": "^5"
+  }
+}
