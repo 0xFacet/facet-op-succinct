@@ -88,6 +88,29 @@ function hashWithdrawal(withdrawal: {
   return keccak256(encoded)
 }
 
+// Compute withdrawal hash with clearer parameter names
+export function computeWithdrawalHash(params: {
+  nonce: bigint
+  l2Bridge: Address
+  l1Bridge: Address
+  to: Address
+  amount: bigint
+}): Hash {
+  const data = encodeAbiParameters(
+    parseAbiParameters('address, uint256'),
+    [params.to, params.amount]
+  )
+  
+  return hashWithdrawal({
+    nonce: params.nonce,
+    sender: params.l2Bridge,
+    target: params.l1Bridge,
+    value: 0n,
+    gasLimit: 0n,
+    data
+  })
+}
+
 // Find canonical proposal for a given output root
 export async function findCanonicalProposal(
   outputRootProof: OutputRootProof

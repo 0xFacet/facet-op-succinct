@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { isAddress, type Hash, formatEther, parseEther } from 'viem'
+import { isAddress, type Hash, formatEther, parseEther, type TransactionReceipt } from 'viem'
 import { useChainId, useSwitchChain, useAccount, useWalletClient } from 'wagmi'
 import { getWithdrawalDataFromTx, type WithdrawalData } from '@/lib/withdrawal-actions'
 import { config, l2PublicClient, l1PublicClient } from '@/lib/config'
 import { writeFacetContract } from '@0xfacet/sdk/viem'
-import { L2_TO_L1_MESSAGE_PASSER_ABI, L2_TO_L1_MESSAGE_PASSER_ADDRESS } from '@/lib/contracts'
-import { decodeAbiParameters, parseAbiParameters } from 'viem'
+import { useCrossDomainMessage } from '@/hooks/useCrossDomainMessage'
 
 interface InitiateStepProps {
   onNext: (txHash: string, withdrawalData: WithdrawalData) => void
@@ -22,12 +21,54 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
   const [pendingTxHash, setPendingTxHash] = useState<string | null>(null)
   const [txStatus, setTxStatus] = useState<'pending' | 'confirmed' | null>(null)
   
+  // State for cross-domain message polling
+  const [l1Receipt, setL1Receipt] = useState<TransactionReceipt | null>(null)
+  const [withdrawalAmount, setWithdrawalAmount] = useState<bigint>(0n)
+  
   const { address } = useAccount()
   const { data: walletClient } = useWalletClient()
   const chainId = useChainId()
   const { switchChain } = useSwitchChain()
   const isOnL2 = chainId === config.l2ChainId
   const isOnL1 = chainId === config.l1ChainId
+  
+  // Only use cross-domain message hook when we have all required data
+  const shouldPoll = !!l1Receipt && !!address && !!pendingTxHash && withdrawalAmount > 0n
+  
+  const { 
+    withdrawalData, 
+    isPolling, 
+    error: pollError, 
+    scanProgress 
+  } = useCrossDomainMessage({
+    expectedAmount: withdrawalAmount,
+    userAddress: address || '0x0000000000000000000000000000000000000000',
+    enabled: shouldPoll
+  })
+  
+  // Handle successful withdrawal data
+  useEffect(() => {
+    if (withdrawalData && pendingTxHash) {
+      // Clear the transaction status after a delay
+      setTimeout(() => {
+        setPendingTxHash(null)
+        setTxStatus(null)
+        setAmount('')
+        setL1Receipt(null)
+        setWithdrawalAmount(0n)
+      }, 3000)
+      
+      onNext(pendingTxHash, withdrawalData)
+    }
+  }, [withdrawalData, pendingTxHash, onNext])
+  
+  // Handle polling errors
+  useEffect(() => {
+    if (pollError) {
+      setError(pollError.message)
+      setLoading(false)
+    }
+  }, [pollError])
   
   // Get L2 ERC20 balance
   const [l2Balance, setL2Balance] = useState<bigint>(0n)
@@ -94,7 +135,7 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
         }
         
         if (!isOnL1) {
-          await switchChain({ chainId: config.l1ChainId })
+          switchChain({ chainId: config.l1ChainId })
           return
         }
         
@@ -126,6 +167,7 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
         
         setPendingTxHash(hash)
         setTxStatus('pending')
+        setWithdrawalAmount(value)
         
         // Wait for the L1 transaction to be confirmed
         const receipt = await l1PublicClient.waitForTransactionReceipt({ hash })
@@ -133,79 +175,9 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
         if (receipt.status === 'success') {
           setTxStatus('confirmed')
           
-          // Now we need to wait for the L2 MessagePassed event
-          // Poll for the event with the user's address as target
-          let attempts = 0
-          const maxAttempts = 30 // 30 seconds
-          
-          const pollForEvent = async () => {
-            attempts++
-            
-            try {
-              const logs = await l2PublicClient.getLogs({
-                address: L2_TO_L1_MESSAGE_PASSER_ADDRESS,
-                event: {
-                  type: 'event',
-                  name: 'MessagePassed',
-                  inputs: L2_TO_L1_MESSAGE_PASSER_ABI.find(abi => abi.name === 'MessagePassed')!.inputs
-                },
-                args: {
-                  sender: config.l2ETHBridgeAddress,
-                  target: config.l1ETHBridgeAddress // Target is L1 bridge, not user
-                },
-                fromBlock: 'latest',
-                toBlock: 'latest'
-              })
-              
-              if (logs.length > 0) {
-                // Found the event!
-                const latestLog = logs[logs.length - 1]
-                const nonce = latestLog.args.nonce!
-                const withdrawalHash = latestLog.args.withdrawalHash!
-                const data = latestLog.args.data!
-                
-                // Decode the amount from the data
-                const [to, amount] = decodeAbiParameters(
-                  parseAbiParameters('address, uint256'),
-                  data
-                )
-                
-                const withdrawalData: WithdrawalData = {
-                  to,
-                  amount,
-                  nonce,
-                  withdrawalHash
-                }
-                
-                // Clear the transaction status after a delay
-                setTimeout(() => {
-                  setPendingTxHash(null)
-                  setTxStatus(null)
-                  setAmount('')
-                }, 3000)
-                
-                onNext(hash, withdrawalData)
-                return
-              }
-              
-              // If we haven't found it yet and haven't exceeded attempts, try again
-              if (attempts < maxAttempts) {
-                setTimeout(pollForEvent, 1000)
-              } else {
-                throw new Error('Timeout waiting for withdrawal event')
-              }
-            } catch (err) {
-              console.error('Error polling for event:', err)
-              if (attempts < maxAttempts) {
-                setTimeout(pollForEvent, 1000)
-              } else {
-                throw new Error('Failed to get withdrawal event')
-              }
-            }
-          }
-          
-          // Start polling
-          await pollForEvent()
+          // Set the receipt to trigger the cross-domain message hook
+          setL1Receipt(receipt)
+          // The hook will handle polling for the MessagePassed event
         } else {
           throw new Error('Transaction failed')
         }
@@ -338,8 +310,29 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
             {txStatus === 'pending' && (
               <p className="text-xs text-blue-600 mt-1">Waiting for L1 confirmation...</p>
             )}
-            {txStatus === 'confirmed' && (
+            {txStatus === 'confirmed' && !isPolling && (
               <p className="text-xs text-green-600 mt-1">L1 transaction confirmed. Waiting for L2 event...</p>
+            )}
+          </div>
+        )}
+
+        {isPolling && (
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800 font-medium">
+              Scanning L2 blocks for withdrawal event...
+            </p>
+            <p className="text-xs text-blue-700 mt-1">
+              {scanProgress.currentBlock ? (
+                <>Current block: #{scanProgress.currentBlock.toString()}</>
+              ) : (
+                <>Starting scan...</>
+              )}
+              {' '}({scanProgress.elapsedSeconds}s elapsed)
+            </p>
+            {scanProgress.elapsedSeconds > 30 && (
+              <p className="text-xs text-blue-600 mt-2">
+                This can take up to 5 minutes during high network activity.
+              </p>
             )}
           </div>
         )}
@@ -348,11 +341,12 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
           type="submit"
           disabled={
             loading || 
+            isPolling ||
             (mode === 'new' ? (!amount || !isOnL1) : !txHash)
           }
           className="w-full py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? 'Processing...' : mode === 'new' ? 'Initiate Withdrawal' : 'Continue'}
+          {loading || isPolling ? 'Processing...' : mode === 'new' ? 'Initiate Withdrawal' : 'Continue'}
         </button>
       </form>
 
