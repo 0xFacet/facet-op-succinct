@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { formatEther } from 'viem'
 import { useWalletClient, useChainId, useSwitchChain } from 'wagmi'
 import { l1PublicClient, l2PublicClient, config } from '@/lib/config'
-import { L1_ETH_BRIDGE_ABI, ROLLUP_ABI } from '@/lib/contracts'
+import { ROLLUP_ABI } from '@/lib/contracts'
 import type { WithdrawalData } from '@/lib/withdrawal-actions'
 import { buildProveWithdrawalSuccinct, proveWithdrawalSuccinct } from '@/lib/actions'
 import { useLatestWithdrawal } from '@/hooks/useLatestWithdrawal'
@@ -18,6 +18,8 @@ interface ProveStepProps {
 export function ProveStep({ withdrawalData, proposalId, onProven }: ProveStepProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pendingTxHash, setPendingTxHash] = useState<string | null>(null)
+  const [txStatus, setTxStatus] = useState<'pending' | 'confirmed' | null>(null)
   
   const chainId = useChainId()
   const { switchChain } = useSwitchChain()
@@ -34,7 +36,11 @@ export function ProveStep({ withdrawalData, proposalId, onProven }: ProveStepPro
     }
 
     if (!isOnL1) {
-      await switchChain({ chainId: config.l1ChainId })
+      try {
+        await switchChain({ chainId: config.l1ChainId })
+      } catch (err) {
+        setError('Chain switch cancelled or failed')
+      }
       return
     }
 
@@ -71,15 +77,31 @@ export function ProveStep({ withdrawalData, proposalId, onProven }: ProveStepPro
       })
 
       console.log('Proof params built, submitting transaction...')
+      
+      // Ensure wallet is fully initialized
+      if (!walletClient.chain || !walletClient.account) {
+        throw new Error('Wallet not fully initialized - please reconnect')
+      }
 
       // Submit prove transaction using the built parameters
-      const tx = await proveWithdrawalSuccinct(walletClient as any, proofParams)
+      const tx = await proveWithdrawalSuccinct(walletClient, proofParams)
+      
+      setPendingTxHash(tx)
+      setTxStatus('pending')
 
       // Wait for confirmation
       const receipt = await l1PublicClient.waitForTransactionReceipt({ hash: tx })
       
       if (receipt.status === 'success') {
+        setTxStatus('confirmed')
         const timestamp = Math.floor(Date.now() / 1000)
+        
+        // Clear the status after a short delay
+        setTimeout(() => {
+          setPendingTxHash(null)
+          setTxStatus(null)
+        }, 3000)
+        
         onProven(timestamp)
       } else {
         throw new Error('Transaction failed')
@@ -137,12 +159,33 @@ export function ProveStep({ withdrawalData, proposalId, onProven }: ProveStepPro
           </div>
         )}
 
+        {pendingTxHash && (
+          <div className={`p-3 border rounded-lg ${
+            txStatus === 'confirmed' 
+              ? 'bg-green-50 border-green-200' 
+              : 'bg-blue-50 border-blue-200'
+          }`}>
+            <p className={`text-sm ${
+              txStatus === 'confirmed' ? 'text-green-800' : 'text-blue-800'
+            }`}>
+              {txStatus === 'pending' && '⏳ Proof transaction pending...'}
+              {txStatus === 'confirmed' && '✅ Proof submitted successfully!'}
+            </p>
+            <p className="text-xs text-gray-600 mt-1">
+              Hash: {pendingTxHash.slice(0, 10)}...{pendingTxHash.slice(-8)}
+            </p>
+            {txStatus === 'pending' && (
+              <p className="text-xs text-blue-600 mt-1">Waiting for confirmation...</p>
+            )}
+          </div>
+        )}
+
         <button
           onClick={handleProve}
           disabled={loading || !isOnL1}
           className="w-full py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? 'Proving...' : 'Prove Withdrawal'}
+          {loading ? (txStatus === 'pending' ? 'Confirming...' : 'Building Proof...') : 'Prove Withdrawal'}
         </button>
 
         <div className="p-3 bg-gray-50 rounded-lg">
