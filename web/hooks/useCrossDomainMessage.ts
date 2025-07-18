@@ -101,29 +101,30 @@ export function useCrossDomainMessage({
             
             // Find matching withdrawal by computing hash
             for (const log of logs) {
-              if (!log.args.nonce || !log.args.withdrawalHash || !log.args.data) continue
+              const { nonce, withdrawalHash, data } = log.args
+              if (nonce === undefined || withdrawalHash === undefined || data === undefined) continue
               
               // Decode the withdrawal data to check if it's for this user
               const [to, amount] = decodeAbiParameters(
                 parseAbiParameters('address, uint256'),
-                log.args.data
+                data
               )
               
               // Verify this is the user's withdrawal
               if (to.toLowerCase() === userAddress.toLowerCase() && amount === expectedAmount) {
                 // Compute expected hash to double-check
                 const calculatedHash = computeWithdrawalHash({
-                  nonce: log.args.nonce,
+                  nonce: nonce,
                   l2Bridge: config.l2ETHBridgeAddress,
                   l1Bridge: config.l1ETHBridgeAddress,
                   to: userAddress,
                   amount: expectedAmount
                 })
                 
-                if (log.args.withdrawalHash.toLowerCase() === calculatedHash.toLowerCase()) {
+                if (withdrawalHash.toLowerCase() === calculatedHash.toLowerCase()) {
                   console.log('[MessagePassed Poll] Found matching withdrawal:', {
-                    nonce: log.args.nonce.toString(),
-                    hash: log.args.withdrawalHash,
+                    nonce: nonce.toString(),
+                    hash: withdrawalHash,
                     blockNumber: log.blockNumber
                   })
                   
@@ -137,8 +138,8 @@ export function useCrossDomainMessage({
                   const withdrawalData: WithdrawalData = {
                     to,
                     amount,
-                    nonce: log.args.nonce,
-                    withdrawalHash: log.args.withdrawalHash
+                    nonce: nonce,
+                    withdrawalHash: withdrawalHash
                   }
                   
                   setWithdrawalData(withdrawalData)

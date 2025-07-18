@@ -156,14 +156,18 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
           }
         ] as const
         
-        // walletClient is guaranteed to exist here due to the check above
+        // Ensure wallet is fully initialized
+        if (!walletClient.chain || !walletClient.account) {
+          throw new Error('Wallet not fully initialized - please reconnect')
+        }
+        
         const hash = await writeFacetContract(walletClient, {
           address: config.l2ETHBridgeAddress,
           abi: l2ETHBridgeAbi,
           functionName: 'initiateWithdrawal',
           args: [address, value],
-          chain: walletClient.chain!,
-          account: walletClient.account!
+          chain: walletClient.chain,
+          account: walletClient.account
         })
         
         setPendingTxHash(hash)
