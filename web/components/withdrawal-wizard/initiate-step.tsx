@@ -42,7 +42,7 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
     scanProgress 
   } = useCrossDomainMessage({
     expectedAmount: withdrawalAmount,
-    userAddress: address || '0x0000000000000000000000000000000000000000',
+    userAddress: address!,  // Safe because shouldPoll checks !!address
     enabled: shouldPoll
   })
   
@@ -156,13 +156,14 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
           }
         ] as const
         
-        const hash = await writeFacetContract(walletClient as any, {
+        // walletClient is guaranteed to exist here due to the check above
+        const hash = await writeFacetContract(walletClient, {
           address: config.l2ETHBridgeAddress,
           abi: l2ETHBridgeAbi,
           functionName: 'initiateWithdrawal',
           args: [address, value],
-          chain: walletClient.chain,
-          account: walletClient.account
+          chain: walletClient.chain!,
+          account: walletClient.account!
         })
         
         setPendingTxHash(hash)

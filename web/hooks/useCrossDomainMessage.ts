@@ -127,15 +127,11 @@ export function useCrossDomainMessage({
                     blockNumber: log.blockNumber
                   })
                   
-                  // Wait for 2 confirmations to protect against reorgs
-                  let confirmations = 0
-                  while (confirmations < 2 && !signal.aborted) {
+                  // Wait until the log has two confirmations
+                  while (!signal.aborted) {
                     const currentBlock = await l2PublicClient.getBlockNumber()
-                    if (currentBlock >= log.blockNumber + 2n) {
-                      break
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 1000))
-                    confirmations++
+                    if (currentBlock >= log.blockNumber + 2n) break
+                    await new Promise(r => setTimeout(r, 1000))
                   }
                   
                   const withdrawalData: WithdrawalData = {
