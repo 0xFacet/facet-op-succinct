@@ -135,7 +135,7 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
         }
         
         if (!isOnL1) {
-          switchChain({ chainId: config.l1ChainId })
+          await switchChain({ chainId: config.l1ChainId })
           return
         }
         
