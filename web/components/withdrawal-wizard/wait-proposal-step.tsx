@@ -153,27 +153,27 @@ export function WaitProposalStep({ withdrawalData, txHash, onProposalFound }: Wa
         </div>
 
         <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Recipient:</span>
-            <span className="font-mono">{withdrawalData.to}</span>
+          <div className="flex justify-between text-sm gap-2">
+            <span className="text-gray-600 flex-shrink-0">Recipient:</span>
+            <span className="font-mono text-xs truncate">{withdrawalData.to}</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Amount:</span>
+          <div className="flex justify-between text-sm gap-2">
+            <span className="text-gray-600 flex-shrink-0">Amount:</span>
             <span>{formatEther(withdrawalData.amount)} ETH</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Nonce:</span>
-            <span className="font-mono text-xs">{withdrawalData.nonce.toString()}</span>
+          <div className="flex justify-between text-sm gap-2">
+            <span className="text-gray-600 flex-shrink-0">Nonce:</span>
+            <span className="font-mono text-xs break-all">{withdrawalData.nonce.toString()}</span>
           </div>
           {l2BlockNumber && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">L2 Block:</span>
+            <div className="flex justify-between text-sm gap-2">
+              <span className="text-gray-600 flex-shrink-0">L2 Block:</span>
               <span>{l2BlockNumber.toString()}</span>
             </div>
           )}
           {txHash && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Transaction:</span>
+            <div className="flex justify-between text-sm gap-2">
+              <span className="text-gray-600 flex-shrink-0">Transaction:</span>
               <a 
                 href={`https://sepolia.explorer.facet.org/tx/${txHash}`}
                 target="_blank"

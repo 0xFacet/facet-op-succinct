@@ -95,7 +95,7 @@ export function WithdrawalWizard() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-8 bg-white rounded-lg shadow-sm">
+    <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8 bg-white rounded-lg shadow-sm">
       <h2 className="text-2xl font-bold mb-6">Withdraw from Facet</h2>
       
       {/* Progress indicator */}
@@ -175,7 +175,7 @@ function StepIndicator({ label, active, completed }: { label: string; active: bo
         ${completed ? 'bg-blue-500 text-white' : active ? 'bg-blue-100 text-blue-600 ring-2 ring-blue-500' : 'bg-gray-200 text-gray-500'}`}>
         {completed ? '✓' : label.charAt(0)}
       </div>
-      <span className={`text-xs mt-1 ${active ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
+      <span className={`text-xs mt-1 text-center max-w-[60px] sm:max-w-none ${active ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
         {label}
       </span>
     </div>

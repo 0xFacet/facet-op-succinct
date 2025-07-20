@@ -5,12 +5,13 @@ import { WalletButton } from '@/components/wallet-button'
 import { NetworkStatus } from '@/components/network-status'
 import { WithdrawalWizard } from '@/components/withdrawal-wizard'
 import { DepositWizard } from '@/components/deposit-wizard'
+import { ContractsFooter } from '@/components/contracts-footer'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit')
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-dvh bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -66,6 +67,9 @@ export default function Home() {
         {/* Active Component */}
         {activeTab === 'deposit' ? <DepositWizard /> : <WithdrawalWizard />}
       </main>
+
+      {/* Footer */}
+      <ContractsFooter />
     </div>
   )
 }

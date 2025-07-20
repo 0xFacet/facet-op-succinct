@@ -112,7 +112,7 @@ export function DepositWizard() {
   
   if (!isConnected) {
     return (
-      <div className="max-w-2xl mx-auto p-8 bg-white rounded-lg shadow-sm">
+      <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8 bg-white rounded-lg shadow-sm">
         <h2 className="text-2xl font-bold mb-4">Deposit to Facet</h2>
         <p className="text-gray-600 mb-6">
           Connect your wallet to deposit ETH from Sepolia to Facet L2.
@@ -122,7 +122,7 @@ export function DepositWizard() {
   }
   
   return (
-    <div className="max-w-2xl mx-auto p-8 bg-white rounded-lg shadow-sm">
+    <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8 bg-white rounded-lg shadow-sm">
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Deposit ETH to Facet</h2>
       
       {/* Balance Display */}
