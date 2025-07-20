@@ -119,7 +119,7 @@ export function FinalizeStep({ withdrawalData, provenAt, onFinalized }: Finalize
               </div>
             </div>
             
-            <button
+            {/* <button
               onClick={() => {
                 onFinalized()
                 window.location.reload()
@@ -127,7 +127,7 @@ export function FinalizeStep({ withdrawalData, provenAt, onFinalized }: Finalize
               className="w-full py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
               Start New Withdrawal
-            </button>
+            </button> */}
           </div>
         </>
       ) : (

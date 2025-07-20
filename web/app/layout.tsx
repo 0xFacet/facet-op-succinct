@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OP Succinct Withdrawals",
-  description: "Withdraw funds from OP Succinct L2 to L1 using ZK proofs",
+  title: "Facet ZK-FP Bridge",
+  description: "Bridge ETH ↔️ Facet Fun Bucks",
 };
 
 export default function RootLayout({

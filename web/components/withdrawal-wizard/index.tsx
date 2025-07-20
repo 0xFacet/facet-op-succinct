@@ -156,14 +156,14 @@ export function WithdrawalWizard() {
       </div>
 
       {/* Reset button */}
-      {state.step !== 'initiate' && !state.isFinalized && (
+      {/* {state.step !== 'initiate' && !state.isFinalized && (
         <button
           onClick={reset}
           className="text-sm text-gray-500 hover:text-gray-700"
         >
           Start new withdrawal
         </button>
-      )}
+      )} */}
     </div>
   )
 }

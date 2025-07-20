@@ -209,7 +209,7 @@ export function WaitProposalStep({ withdrawalData, txHash, onProposalFound }: Wa
                       </span>
                     )}
                   </p>
-                  {proposalInterval && Number(l2BlockNumber) > latestProposal.l2BlockNumber && (
+                  {/* {proposalInterval && Number(l2BlockNumber) > latestProposal.l2BlockNumber && (
                     <p className="text-orange-600">
                       Estimated time until proposal: {(() => {
                         const blocksUntilNext = proposalInterval - ((Number(l2BlockNumber) - latestProposal.l2BlockNumber) % proposalInterval)
@@ -219,7 +219,7 @@ export function WaitProposalStep({ withdrawalData, txHash, onProposalFound }: Wa
                         return `~${minutesRemaining} minutes`
                       })()}
                     </p>
-                  )}
+                  )} */}
                 </>
               )}
               <p className="text-gray-500 mt-2">
