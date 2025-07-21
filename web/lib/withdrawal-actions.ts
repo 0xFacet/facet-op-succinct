@@ -183,7 +183,7 @@ export async function getWithdrawalStatus(withdrawalHash: Hash) {
       address: config.l1ETHBridgeAddress,
       abi: L1_ETH_BRIDGE_ABI,
       functionName: 'proven',
-      args: [withdrawalHash]
+      args: [withdrawalHash, config.rollupAddress]
     }),
     l1PublicClient.readContract({
       address: config.l1ETHBridgeAddress,
