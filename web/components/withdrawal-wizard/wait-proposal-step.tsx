@@ -20,10 +20,10 @@ export function WaitProposalStep({ withdrawalData, txHash, onProposalFound }: Wa
   const [outputRootProof, setOutputRootProof] = useState<OutputRootProof | null>(null)
   const [l2BlockNumber, setL2BlockNumber] = useState<bigint | null>(null)
   const [proposalInterval, setProposalInterval] = useState<number | null>(null)
+  const [withdrawalTimestamp, setWithdrawalTimestamp] = useState<number | undefined>(undefined)
   
   // Get the withdrawal details to know when it was created
   const { withdrawal } = useLatestWithdrawal()
-  const withdrawalTimestamp = withdrawal ? Math.floor(Date.now() / 1000) - 3600 : undefined // Look back 1 hour
   
   // Track proposals since the withdrawal
   const { latestProposal, proposalsSinceTimestamp, proposalCount } = useProposalTracking(withdrawalTimestamp)
@@ -54,8 +54,11 @@ export function WaitProposalStep({ withdrawalData, txHash, onProposalFound }: Wa
       const blockNumber = withdrawal.blockNumber
       setL2BlockNumber(blockNumber)
       
-      // Get the block data for output root proof
+      // Get the block data for output root proof and timestamp
       const block = await l2PublicClient.getBlock({ blockNumber })
+      
+      // Set the actual withdrawal timestamp from the block
+      setWithdrawalTimestamp(Number(block.timestamp))
       const stateRoot = await l2PublicClient.getProof({
         address: '0x4200000000000000000000000000000000000016', // L2ToL1MessagePasser
         storageKeys: [],
