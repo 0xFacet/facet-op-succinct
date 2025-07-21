@@ -1,7 +1,7 @@
 import { createPublicClient, http } from 'viem'
 import { mainnet, sepolia } from 'viem/chains'
 import type { Address } from 'viem'
-import { facetSepolia } from './chains'
+import { facetSepolia, facetMainnet } from './chains'
 
 export const config = {
   l1ChainId: Number(process.env.NEXT_PUBLIC_L1_CHAIN_ID || 11155111),
@@ -32,6 +32,10 @@ export const getL1Chain = () => {
 }
 
 export const getL2Chain = () => {
+  // Use mainnet Facet when L1 is mainnet, otherwise use Sepolia
+  if (config.l1ChainId === 1) {
+    return facetMainnet
+  }
   return facetSepolia
 }
 

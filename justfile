@@ -2,7 +2,7 @@ default:
   @just --list
 
 # Get starting root for a given L2 block number from env file
-get-starting-root env_file=".env":
+get-starting-root env_file:
   #!/usr/bin/env bash
   # Load environment variables
   source {{env_file}}
