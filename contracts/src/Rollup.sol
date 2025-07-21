@@ -4,6 +4,7 @@ pragma solidity 0.8.24;
 import { ISP1Verifier } from "@sp1-contracts/src/ISP1Verifier.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { SafeCastLib } from "solady/src/utils/SafeCastLib.sol";
 
 /// @title Rollup
 /// @notice Dual-track ZK fault validity proof system
@@ -16,6 +17,8 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuar
 /// @dev - Bulk invalidation: Validity proofs invalidate all conflicting fault proofs
 /// @dev - Censorship resistance: Fallback window allows anyone to propose after timeout
 contract Rollup is Ownable, ReentrancyGuard {
+    using SafeCastLib for uint256;
+    
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -54,7 +57,13 @@ contract Rollup is Ownable, ReentrancyGuard {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event ProposalSubmitted(uint256 indexed proposalId, uint256 indexed parentId, address indexed proposer, bytes32 root, uint128 l2BlockNumber);
+    event ProposalSubmitted(
+        uint256 indexed proposalId,
+        uint256 indexed parentId,
+        address indexed proposer,
+        bytes32 root,
+        uint256 l2BlockNumber);
+    
     event ProposalChallenged(uint256 indexed proposalId, address indexed challenger);
     event ProposalProven(uint256 indexed proposalId, address indexed prover);
     event ProposalResolved(uint256 indexed proposalId, ResolutionStatus status);
@@ -62,6 +71,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     event ProposalClosed(uint256 indexed proposalId);
     event ProposerPermissionUpdated(address indexed proposer, bool allowed);
     event BlockProven(uint128 indexed l2BlockNumber, bytes32 root, address indexed prover);
+    event L1BlockHashCheckpointed(uint256 indexed l1BlockNumber, bytes32 blockHash);
 
     /*//////////////////////////////////////////////////////////////
                                ERRORS
@@ -84,6 +94,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     error L1BlockHashNotAvailable();
     error L1BlockHashNotCheckpointed();
     error NoCanonicalProposal();
+    error InvalidL2BlockNumber();
 
     /*//////////////////////////////////////////////////////////////
                                STRUCTS
@@ -128,16 +139,16 @@ contract Rollup is Ownable, ReentrancyGuard {
     mapping(address => bool) public whitelistedProposer;
 
     // The anchor tracks the latest accepted block
-    uint128 public anchorL2BlockNumber;
+    uint256 public anchorL2BlockNumber;
     
     // Checkpointed L1 block hashes for proof verification
     mapping(uint256 => bytes32) public l1BlockHashes;
 
     // Maps L2 block number to the canonical proposal ID
     // 0 means no canonical proposal exists (uninitialized storage)
-    // type(uint32).max means proposal 0 (genesis) is canonical
-    uint32 private constant GENESIS_SENTINEL = type(uint32).max;
-    mapping(uint256 => uint32) private _canonical;
+    // type(uint256).max means proposal 0 (genesis) is canonical
+    uint256 private constant GENESIS_SENTINEL = type(uint256).max;
+    mapping(uint256 => uint256) private _canonical;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
@@ -151,7 +162,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         uint256 _fallbackTimeout,
         uint256 _proposalInterval,
         bytes32 _startRoot,
-        uint128 _startBlock,
+        uint256 _startBlock,
         uint256 _l2StartTimestamp,
         uint256 _l2BlockTime,
         ISP1Verifier _verifier,
@@ -178,7 +189,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         // Create genesis proposal representing the starting anchor
         Proposal memory genesis = Proposal({
             rootClaim: _startRoot,
-            l2BlockNumber: uint32(_startBlock),
+            l2BlockNumber: _startBlock.toUint32(),
             parentIndex: 0,
             deadline: 0,
             proposer: address(0),
@@ -206,8 +217,8 @@ contract Rollup is Ownable, ReentrancyGuard {
     /// @return proposalId ID of the created proposal
     function _createProposal(
         bytes32 root,
-        uint128 l2BlockNumber,
-        uint32 parentId,
+        uint256 l2BlockNumber,
+        uint256 parentId,
         address proposer
     ) internal returns (uint256 proposalId) {
         if (parentId >= proposals.length) revert InvalidParentGame();
@@ -232,9 +243,9 @@ contract Rollup is Ownable, ReentrancyGuard {
         
         Proposal storage p = proposals[proposalId];
         p.rootClaim = root;
-        p.l2BlockNumber = uint32(l2BlockNumber);
-        p.parentIndex = parentId;
-        p.deadline = uint32(block.timestamp + MAX_CHALLENGE_SECS);
+        p.l2BlockNumber = l2BlockNumber.toUint32();
+        p.parentIndex = parentId.toUint32();
+        p.deadline = (block.timestamp + MAX_CHALLENGE_SECS).toUint32();
         p.proposer = proposer;
         
         emit ProposalSubmitted(proposalId, parentId, proposer, root, l2BlockNumber);
@@ -249,7 +260,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     function submitProposal(
         bytes32 root,
         uint128 l2BlockNumber,
-        uint32  parentId
+        uint256  parentId
     ) external payable returns (uint256 proposalId) {
         if (msg.value != PROPOSER_BOND) revert IncorrectBondAmount();
         
@@ -276,7 +287,7 @@ contract Rollup is Ownable, ReentrancyGuard {
 
         p.challenger = msg.sender;
         p.proposalStatus = ProposalStatus.Challenged;
-        p.deadline = uint32(block.timestamp + MAX_PROVE_SECS);
+        p.deadline = (block.timestamp + MAX_PROVE_SECS).toUint32();
 
         emit ProposalChallenged(id, msg.sender);
     }
@@ -295,7 +306,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     ) external {
         // Validity proofs must build directly on the anchor to ensure linear progression
         // Anchor always has a canonical (genesis at minimum)
-        uint32 parentProposalId = anchorProposalId();
+        uint256 parentProposalId = anchorProposalId();
         
         // address(0) proposer indicates no bond was collected
         uint256 proposalId = _createProposal({
@@ -385,6 +396,10 @@ contract Rollup is Ownable, ReentrancyGuard {
     /// @param _l2BlockNumber L2 block number
     /// @return Expected timestamp based on L2_BLOCK_TIME and genesis
     function computeL2Timestamp(uint256 _l2BlockNumber) public view returns (uint256) {
+        if (_l2BlockNumber < proposals[0].l2BlockNumber) {
+            revert InvalidL2BlockNumber();
+        }
+        
         return L2_START_TIMESTAMP + ((_l2BlockNumber - proposals[0].l2BlockNumber) * L2_BLOCK_TIME);
     }
     
@@ -440,7 +455,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         
         if (p.resolutionStatus == ResolutionStatus.DEFENDER_WINS) {
             // Mark as canonical if not already set by validity proof
-            _trySetCanonical(p.l2BlockNumber, uint32(id));
+            _trySetCanonical(p.l2BlockNumber, id);
             
             // Advance anchor only if this directly extends it
             if (p.l2BlockNumber == anchorL2BlockNumber + PROPOSAL_INTERVAL) {
@@ -463,7 +478,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         }
         
         p.proposalStatus = ProposalStatus.Resolved;
-        p.resolvedAt = uint64(block.timestamp);
+        p.resolvedAt = (block.timestamp).toUint64();
         emit ProposalResolved(id, p.resolutionStatus);
         emit ProposalClosed(id);
     }
@@ -570,6 +585,8 @@ contract Rollup is Ownable, ReentrancyGuard {
             revert L1BlockHashNotAvailable();
         }
         l1BlockHashes[l1BlockNumber] = blockHash;
+        
+        emit L1BlockHashCheckpointed(l1BlockNumber, blockHash);
     }
     
     /*//////////////////////////////////////////////////////////////
@@ -593,7 +610,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     /// @notice Get current anchor root and block number
     /// @return root Output root
     /// @return blockNumber L2 block number
-    function getAnchorRoot() public view returns (bytes32, uint128) {
+    function getAnchorRoot() public view returns (bytes32, uint256) {
         return (anchorRoot(), anchorL2BlockNumber);
     }
 
@@ -640,7 +657,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     
     /// @notice Get the canonical proposal ID for the anchor block
     /// @return Proposal ID of current anchor
-    function anchorProposalId() public view returns (uint32) {
+    function anchorProposalId() public view returns (uint256) {
         return canonicalProposalIdFor(anchorL2BlockNumber);
     }
 
@@ -654,14 +671,14 @@ contract Rollup is Ownable, ReentrancyGuard {
     function canonicalProposalFor(uint256 l2BlockNumber) public view returns (Proposal memory) {
         if (!_canonicalExistsFor(l2BlockNumber)) revert NoCanonicalProposal();
         
-        uint32 canonicalId = canonicalProposalIdFor(l2BlockNumber);
+        uint256 canonicalId = canonicalProposalIdFor(l2BlockNumber);
         return proposals[canonicalId];
     }
 
     /// @notice Get the canonical proposal ID for an L2 block
     /// @param l2BlockNumber The L2 block number
     /// @return The canonical proposal ID, or 0 if none exists
-    function canonicalProposalIdFor(uint256 l2BlockNumber) public view returns (uint32) {
+    function canonicalProposalIdFor(uint256 l2BlockNumber) public view returns (uint256) {
         if (!_canonicalExistsFor(l2BlockNumber)) revert NoCanonicalProposal();
         
         return _canonical[l2BlockNumber] == GENESIS_SENTINEL ? 0 : _canonical[l2BlockNumber];
@@ -675,7 +692,7 @@ contract Rollup is Ownable, ReentrancyGuard {
 
     /// @dev Get the canonical proposal storage reference (reverts if doesn't exist)
     function _canonicalProposalFor(uint256 l2BlockNumber) internal view returns (Proposal storage) {
-        uint32 canonicalId = canonicalProposalIdFor(l2BlockNumber);
+        uint256 canonicalId = canonicalProposalIdFor(l2BlockNumber);
         
         return proposals[canonicalId];
     }
@@ -686,7 +703,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     }
 
     /// @dev Try to set the canonical proposal for an L2 block (only sets if not already set)
-    function _trySetCanonical(uint256 l2BlockNumber, uint32 proposalId) internal {
+    function _trySetCanonical(uint256 l2BlockNumber, uint256 proposalId) internal {
         if (!_canonicalExistsFor(l2BlockNumber)) {
             _canonical[l2BlockNumber] = proposalId == 0 ? GENESIS_SENTINEL : proposalId;
         }

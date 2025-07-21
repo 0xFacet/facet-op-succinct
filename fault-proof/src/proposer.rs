@@ -320,7 +320,7 @@ where
             .submitProposal(
                 output_root,
                 l2_block_number.try_into().unwrap(),
-                parent_id.to::<u32>(),
+                parent_id.into(),
             )
             .value(self.proposer_bond)
             .into_transaction_request();

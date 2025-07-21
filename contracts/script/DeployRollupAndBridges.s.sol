@@ -41,6 +41,9 @@ contract DeployRollupAndBridges is Script, FacetScript {
         l1Bridge.setL2Bridge(l2BridgeAddress);
         console.log("L1 Bridge linked to L2 Bridge at:", l2BridgeAddress);
         
+        console.log("Renouncing bridge ownership");
+        l1Bridge.renounceOwnership();
+        
         // Step 5: Configure Rollup permissions
         console.log("\n=== Configuring Rollup Permissions ===");
         configureRollupPermissions(rollup);
