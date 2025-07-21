@@ -157,7 +157,7 @@ contract L1ETHBridgeTrainingWheelsTest is Test {
         
         vm.prank(user);
         vm.expectRevert("Pausable: paused");
-        bridge.finaliseWithdrawal(user, 0.1 ether, 1);
+        bridge.finalizeWithdrawal(user, 0.1 ether, 1);
     }
     
     function testRootBlacklisting() public {

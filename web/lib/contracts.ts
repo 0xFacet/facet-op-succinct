@@ -80,7 +80,7 @@ export const L1_ETH_BRIDGE_ABI = [
       { internalType: 'uint256', name: 'amount', type: 'uint256' },
       { internalType: 'uint256', name: 'nonce', type: 'uint256' }
     ],
-    name: 'finaliseWithdrawal',
+    name: 'finalizeWithdrawal',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function'
@@ -97,7 +97,7 @@ export const L1_ETH_BRIDGE_ABI = [
   },
   {
     inputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
-    name: 'finalised',
+    name: 'finalized',
     outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
     stateMutability: 'view',
     type: 'function'
@@ -120,7 +120,7 @@ export const L1_ETH_BRIDGE_ABI = [
     ]
   },
   {
-    name: 'WithdrawalFinalised',
+    name: 'WithdrawalFinalized',
     type: 'event',
     inputs: [
       { indexed: true, name: 'to', type: 'address' },

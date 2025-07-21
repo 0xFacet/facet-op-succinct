@@ -91,7 +91,7 @@ export function useLatestWithdrawal() {
           const isFinalized = await l1PublicClient.readContract({
             address: config.l1ETHBridgeAddress,
             abi: L1_ETH_BRIDGE_ABI,
-            functionName: 'finalised',
+            functionName: 'finalized',
             args: [withdrawalHash]
           })
           

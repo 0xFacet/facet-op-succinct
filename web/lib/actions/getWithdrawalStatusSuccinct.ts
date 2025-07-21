@@ -15,7 +15,7 @@ const l1EthBridgeAbi = [
   },
   {
     inputs: [{ name: 'withdrawalHash', type: 'bytes32' }],
-    name: 'finalised',
+    name: 'finalized',
     outputs: [{ type: 'bool' }],
     stateMutability: 'view',
     type: 'function',
@@ -139,7 +139,7 @@ export async function getWithdrawalStatusSuccinct<chain extends Chain | undefine
   const isFinalized = await readContract(client, {
     address: bridgeAddress,
     abi: l1EthBridgeAbi,
-    functionName: 'finalised',
+    functionName: 'finalized',
     args: [withdrawalHash],
     stateOverride,
   })

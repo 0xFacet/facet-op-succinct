@@ -73,7 +73,7 @@ contract BridgeIntegrationTest is Test {
     event DepositInitiated(address indexed from, address indexed to, uint256 amount);
     event WithdrawalInitiated(address indexed from, address indexed to, uint256 amount);
     event WithdrawalProven(address indexed to, uint256 amount, uint256 nonce, uint256 proposalId);
-    event WithdrawalFinalised(address indexed to, uint256 amount, uint256 nonce);
+    event WithdrawalFinalized(address indexed to, uint256 amount, uint256 nonce);
     event FacetTransactionSent(address indexed to, uint256 gasLimit, bytes data);
 
     function setUp() public {
@@ -329,7 +329,7 @@ contract BridgeIntegrationTest is Test {
 
         // Try to finalize immediately (should fail due to delay)
         vm.expectRevert(L1ETHBridge.WithdrawalDelayNotMet.selector);
-        l1Bridge.finaliseWithdrawal(user, withdrawAmount, nonce);
+        l1Bridge.finalizeWithdrawal(user, withdrawAmount, nonce);
         
         // Warp past the withdrawal delay
         uint256 withdrawalDelay = l1Bridge.withdrawalDelay();
@@ -339,13 +339,13 @@ contract BridgeIntegrationTest is Test {
         uint256 userBalanceBefore = user.balance;
 
         vm.expectEmit(true, true, true, true);
-        emit WithdrawalFinalised(user, withdrawAmount, nonce);
+        emit WithdrawalFinalized(user, withdrawAmount, nonce);
 
-        l1Bridge.finaliseWithdrawal(user, withdrawAmount, nonce);
+        l1Bridge.finalizeWithdrawal(user, withdrawAmount, nonce);
 
         // Check user received funds
         assertEq(user.balance, userBalanceBefore + withdrawAmount);
-        // Skip checking finalised mapping since the hash calculation differs
+        // Skip checking finalized mapping since the hash calculation differs
     }
 
     /**
@@ -475,11 +475,11 @@ contract BridgeIntegrationTest is Test {
         vm.warp(block.timestamp + withdrawalDelay + 1);
 
         // First finalization should succeed
-        l1Bridge.finaliseWithdrawal(user, 1 ether, nonce);
+        l1Bridge.finalizeWithdrawal(user, 1 ether, nonce);
 
         // Second finalization should fail
-        vm.expectRevert(L1ETHBridge.WithdrawalAlreadyFinalised.selector);
-        l1Bridge.finaliseWithdrawal(user, 1 ether, nonce);
+        vm.expectRevert(L1ETHBridge.WithdrawalAlreadyFinalized.selector);
+        l1Bridge.finalizeWithdrawal(user, 1 ether, nonce);
     }
 
     /**
@@ -582,7 +582,7 @@ contract BridgeIntegrationTest is Test {
         l1Bridge.setL2Bridge(address(l2Bridge));
 
         vm.expectRevert(L1ETHBridge.WithdrawalNotProven.selector);
-        l1Bridge.finaliseWithdrawal(user, 1 ether, 0);
+        l1Bridge.finalizeWithdrawal(user, 1 ether, 0);
     }
 
     /**
@@ -642,14 +642,14 @@ contract BridgeIntegrationTest is Test {
         // The withdrawal will succeed, but the reentrancy attempt will fail
         // This is fine - the important thing is that the reentrancy guard prevents double withdrawal
         uint256 bridgeBalanceBefore = address(l1Bridge).balance;
-        l1Bridge.finaliseWithdrawal(address(reentrant), 1 ether, nonce);
+        l1Bridge.finalizeWithdrawal(address(reentrant), 1 ether, nonce);
 
         // Verify only 1 ether was withdrawn (not 2)
         assertEq(bridgeBalanceBefore - address(l1Bridge).balance, 1 ether);
 
         // Verify the withdrawal is now finalized and can't be done again
-        vm.expectRevert(L1ETHBridge.WithdrawalAlreadyFinalised.selector);
-        l1Bridge.finaliseWithdrawal(address(reentrant), 1 ether, nonce);
+        vm.expectRevert(L1ETHBridge.WithdrawalAlreadyFinalized.selector);
+        l1Bridge.finalizeWithdrawal(address(reentrant), 1 ether, nonce);
     }
 }
 
@@ -675,7 +675,7 @@ contract ReentrantReceiver {
         if (attacking) {
             attacking = false; // Prevent infinite loop
             // Try to re-enter
-            bridge.finaliseWithdrawal(attackTo, attackAmount, attackNonce);
+            bridge.finalizeWithdrawal(attackTo, attackAmount, attackNonce);
         }
     }
 }

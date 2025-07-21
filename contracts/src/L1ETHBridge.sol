@@ -27,7 +27,7 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
 
     error L2BridgeNotSet();
     error WithdrawalAlreadyProven();
-    error WithdrawalAlreadyFinalised();
+    error WithdrawalAlreadyFinalized();
     error ProposalNotCanonical();
     error InvalidOutputRoot();
     error InvalidWithdrawalProof();
@@ -59,8 +59,8 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
 
     // withdrawalHash => ProvenWithdrawal
     mapping(bytes32 => ProvenWithdrawal) public proven;
-    // withdrawalHash => finalised?
-    mapping(bytes32 => bool) public finalised;
+    // withdrawalHash => finalized?
+    mapping(bytes32 => bool) public finalized;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -68,7 +68,7 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
 
     event DepositInitiated(address indexed from, address indexed to, uint256 amount);
     event WithdrawalProven(address indexed to, uint256 amount, uint256 nonce, uint256 proposalId);
-    event WithdrawalFinalised(address indexed to, uint256 amount, uint256 nonce);
+    event WithdrawalFinalized(address indexed to, uint256 amount, uint256 nonce);
     event RollupUpdated(address indexed oldRollup, address indexed newRollup);
     event RootBlacklistStatusChanged(bytes32 indexed root, bool blacklisted);
     event WithdrawalDelayUpdated(uint256 oldDelay, uint256 newDelay);
@@ -189,7 +189,7 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
         bytes32 withdrawalHash = _hashWithdrawal(to, amount, nonce);
 
         if (proven[withdrawalHash].provenAt != 0) revert WithdrawalAlreadyProven();
-        if (finalised[withdrawalHash]) revert WithdrawalAlreadyFinalised();
+        if (finalized[withdrawalHash]) revert WithdrawalAlreadyFinalized();
 
         Rollup.Proposal memory prop = rollup.getProposal(proposalId);
 
@@ -216,16 +216,16 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            WITHDRAWAL – FINALISE
+                            WITHDRAWAL – FINALIZE
     //////////////////////////////////////////////////////////////*/
 
-    function finaliseWithdrawal(address to, uint256 amount, uint256 nonce) external nonReentrant whenNotPaused {
+    function finalizeWithdrawal(address to, uint256 amount, uint256 nonce) external nonReentrant whenNotPaused {
         bytes32 withdrawalHash = _hashWithdrawal(to, amount, nonce);
 
         ProvenWithdrawal memory info = proven[withdrawalHash];
 
         if (info.provenAt == 0) revert WithdrawalNotProven();
-        if (finalised[withdrawalHash]) revert WithdrawalAlreadyFinalised();
+        if (finalized[withdrawalHash]) revert WithdrawalAlreadyFinalized();
         
         // Respect safety delay
         if (block.timestamp <= info.provenAt + withdrawalDelay) revert WithdrawalDelayNotMet();
@@ -234,11 +234,11 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
         Rollup.Proposal memory prop = rollup.getProposal(info.proposalId);
         if (rootBlacklisted[prop.rootClaim]) revert RootBlacklisted();
 
-        finalised[withdrawalHash] = true;
+        finalized[withdrawalHash] = true;
 
         to.forceSafeTransferETH(amount, SafeTransferLib.GAS_STIPEND_NO_STORAGE_WRITES);
 
-        emit WithdrawalFinalised(to, amount, nonce);
+        emit WithdrawalFinalized(to, amount, nonce);
     }
 
     /*//////////////////////////////////////////////////////////////

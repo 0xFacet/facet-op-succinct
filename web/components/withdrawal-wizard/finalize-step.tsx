@@ -60,7 +60,7 @@ export function FinalizeStep({ withdrawalData, provenAt, onFinalized }: Finalize
       const tx = await walletClient.writeContract({
         address: config.l1ETHBridgeAddress,
         abi: L1_ETH_BRIDGE_ABI,
-        functionName: 'finaliseWithdrawal',
+        functionName: 'finalizeWithdrawal',
         args: [
           withdrawalData.to,
           withdrawalData.amount,

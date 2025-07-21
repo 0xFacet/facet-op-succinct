@@ -188,7 +188,7 @@ export async function getWithdrawalStatus(withdrawalHash: Hash) {
     l1PublicClient.readContract({
       address: config.l1ETHBridgeAddress,
       abi: L1_ETH_BRIDGE_ABI,
-      functionName: 'finalised',
+      functionName: 'finalized',
       args: [withdrawalHash]
     })
   ])

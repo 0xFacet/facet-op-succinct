@@ -136,7 +136,7 @@ contract BridgeIntegrationSimpleTest is Test {
         
         // For now, we just test the revert on unproven withdrawal
         vm.expectRevert(L1ETHBridge.WithdrawalNotProven.selector);
-        l1Bridge.finaliseWithdrawal(user, 1 ether, 0);
+        l1Bridge.finalizeWithdrawal(user, 1 ether, 0);
     }
 }
 

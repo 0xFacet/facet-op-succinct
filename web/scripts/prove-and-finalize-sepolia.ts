@@ -58,7 +58,7 @@ const L1_BRIDGE_ABI = [
       { name: 'amount', type: 'uint256' },
       { name: 'nonce', type: 'uint256' }
     ],
-    name: 'finaliseWithdrawal',
+    name: 'finalizeWithdrawal',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function'
@@ -75,7 +75,7 @@ const L1_BRIDGE_ABI = [
   },
   {
     inputs: [{ name: 'withdrawalHash', type: 'bytes32' }],
-    name: 'finalised',
+    name: 'finalized',
     outputs: [{ name: '', type: 'bool' }],
     stateMutability: 'view',
     type: 'function'
@@ -286,7 +286,7 @@ async function main() {
   const isFinalized = await l1Client.readContract({
     address: config.l1ETHBridgeAddress,
     abi: L1_BRIDGE_ABI,
-    functionName: 'finalised',
+    functionName: 'finalized',
     args: [withdrawalHash]
   });
 
@@ -434,7 +434,7 @@ async function main() {
   const finalizeTx = await l1WalletClient.writeContract({
     address: config.l1ETHBridgeAddress,
     abi: L1_BRIDGE_ABI,
-    functionName: 'finaliseWithdrawal',
+    functionName: 'finalizeWithdrawal',
     args: [withdrawalParams.to, withdrawalParams.amount, withdrawalParams.nonce]
   });
 

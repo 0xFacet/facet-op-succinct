@@ -8,7 +8,7 @@ const l1EthBridgeAbi = [
       { name: 'amount', type: 'uint256' },
       { name: 'nonce', type: 'uint256' },
     ],
-    name: 'finaliseWithdrawal',
+    name: 'finalizeWithdrawal',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
@@ -45,7 +45,7 @@ export async function finalizeWithdrawalSuccinct(
   return writeContract(client, {
     address: bridgeAddress,
     abi: l1EthBridgeAbi,
-    functionName: 'finaliseWithdrawal',
+    functionName: 'finalizeWithdrawal',
     args: [to, amount, nonce],
   })
 }
