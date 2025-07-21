@@ -6,7 +6,7 @@ import {console} from "forge-std/console.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 import {Rollup} from "../src/Rollup.sol";
-import {L1ETHBridge, IRollup} from "../src/L1ETHBridge.sol";
+import {L1ETHBridge} from "../src/L1ETHBridge.sol";
 import {L2ERC20Bridge} from "../src/L2ERC20Bridge.sol";
 import {ISP1Verifier} from "@sp1-contracts/src/ISP1Verifier.sol";
 import {SP1MockVerifier} from "@sp1-contracts/src/SP1MockVerifier.sol";
@@ -29,7 +29,7 @@ contract DeployRollupAndBridges is Script, FacetScript {
         
         // Step 2: Deploy L1 ETH Bridge
         console.log("\n=== Deploying L1 ETH Bridge ===");
-        L1ETHBridge l1Bridge = new L1ETHBridge(IRollup(address(rollup)));
+        L1ETHBridge l1Bridge = new L1ETHBridge(Rollup(address(rollup)));
         console.log("L1 ETH Bridge deployed at:", address(l1Bridge));
         
         // Step 3: Deploy L2 Bridge using Facet approach

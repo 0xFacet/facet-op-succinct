@@ -6,7 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
 // Contracts
-import {L1ETHBridge, IRollup} from "../src/L1ETHBridge.sol";
+import {L1ETHBridge} from "../src/L1ETHBridge.sol";
 import {L2ERC20Bridge} from "../src/L2ERC20Bridge.sol";
 import {Rollup} from "../src/Rollup.sol";
 import {Types} from "src/libraries/Types.sol";
@@ -67,7 +67,7 @@ contract BridgeIntegrationSimpleTest is Test {
         vm.deal(proposer, 10 ether);
         
         // Deploy bridges
-        l1Bridge = new L1ETHBridge(IRollup(address(rollup)));
+        l1Bridge = new L1ETHBridge(Rollup(address(rollup)));
         l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
         

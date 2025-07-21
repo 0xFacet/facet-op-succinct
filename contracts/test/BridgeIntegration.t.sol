@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 
 // Core contracts
-import {L1ETHBridge, IRollup} from "../src/L1ETHBridge.sol";
+import {L1ETHBridge} from "../src/L1ETHBridge.sol";
 import {L2ERC20Bridge} from "../src/L2ERC20Bridge.sol";
 import {Rollup} from "../src/Rollup.sol";
 
@@ -114,7 +114,7 @@ contract BridgeIntegrationTest is Test {
 
         // Deploy L1 bridge (actual implementation)
         // Tests will use real merkle proofs via Go FFI
-        l1Bridge = new L1ETHBridge(IRollup(address(rollup)));
+        l1Bridge = new L1ETHBridge(Rollup(address(rollup)));
 
         // We'll deploy L2 components in individual tests
         // since we need to mock the L2 environment differently
@@ -327,7 +327,15 @@ contract BridgeIntegrationTest is Test {
         // which may differ from the L2ToL1MessagePasser's hash
         // For this test, we'll skip checking the proven mapping since the event emission is sufficient
 
-        // Try to finalize immediately (should succeed since no delay)
+        // Try to finalize immediately (should fail due to delay)
+        vm.expectRevert(L1ETHBridge.WithdrawalDelayNotMet.selector);
+        l1Bridge.finaliseWithdrawal(user, withdrawAmount, nonce);
+        
+        // Warp past the withdrawal delay
+        uint256 withdrawalDelay = l1Bridge.withdrawalDelay();
+        vm.warp(block.timestamp + withdrawalDelay + 1);
+        
+        // Now finalize should succeed
         uint256 userBalanceBefore = user.balance;
 
         vm.expectEmit(true, true, true, true);
@@ -461,6 +469,10 @@ contract BridgeIntegrationTest is Test {
         uint256 proposalId = _createCanonicalProposal(GENESIS_BLOCK + uint128(PROPOSAL_INTERVAL), outputRoot);
 
         l1Bridge.proveWithdrawal(user, 1 ether, nonce, proposalId, outputRootProof, withdrawalProof);
+
+        // Warp past the withdrawal delay
+        uint256 withdrawalDelay = l1Bridge.withdrawalDelay();
+        vm.warp(block.timestamp + withdrawalDelay + 1);
 
         // First finalization should succeed
         l1Bridge.finaliseWithdrawal(user, 1 ether, nonce);
@@ -619,6 +631,10 @@ contract BridgeIntegrationTest is Test {
         l1Bridge.proveWithdrawal(
             address(reentrant), 1 ether, nonce, proposalId, outputRootProof, withdrawalProof
         );
+
+        // Warp past the withdrawal delay
+        uint256 withdrawalDelay = l1Bridge.withdrawalDelay();
+        vm.warp(block.timestamp + withdrawalDelay + 1);
 
         // Set up reentrant to attack
         reentrant.setAttackParams(address(reentrant), 1 ether, nonce);
