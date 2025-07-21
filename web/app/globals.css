@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #111827; /* gray-900 */
+  
+  /* Custom color variables for better defaults */
+  --text-primary: #111827; /* gray-900 */
+  --text-secondary: #374151; /* gray-700 */
+  --text-tertiary: #6b7280; /* gray-500 */
+  --text-muted: #9ca3af; /* gray-400 */
+  
+  --border-default: #e5e7eb; /* gray-200 */
+  --bg-subtle: #f9fafb; /* gray-50 */
+  --bg-muted: #f3f4f6; /* gray-100 */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Force light mode for now - remove dark mode */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Force RainbowKit to use light mode */
+[data-rk] {
+  color-scheme: light !important;
+}
+
+/* Override RainbowKit dark mode styles */
+[data-rk][data-theme="dark"] {
+  --rk-colors-modalBackground: #ffffff !important;
+  --rk-colors-modalBorder: #e5e7eb !important;
+  --rk-colors-modalText: #111827 !important;
+  --rk-colors-modalTextSecondary: #6b7280 !important;
+}
+
+/* Better default text colors */
+.text-default { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.text-muted { color: var(--text-muted); }

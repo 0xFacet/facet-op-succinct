@@ -5,13 +5,14 @@ sol! {
     #[derive(Debug, PartialEq)]
     contract Rollup {
         // Events
-        event ProposalSubmitted(uint256 indexed proposalId, uint256 indexed parentId, address indexed proposer, bytes32 root, uint128 l2BlockNumber);
+        event ProposalSubmitted(uint256 indexed proposalId, uint256 indexed parentId, address indexed proposer, bytes32 root, uint256 l2BlockNumber);
         event ProposalChallenged(uint256 indexed proposalId, address indexed challenger);
         event ProposalProven(uint256 indexed proposalId, address indexed prover);
         event ProposalResolved(uint256 indexed proposalId, ResolutionStatus status);
-        event AnchorUpdated(uint256 indexed proposalId, bytes32 root, uint128 l2BlockNumber);
+        event AnchorUpdated(uint256 indexed proposalId, bytes32 root, uint256 l2BlockNumber);
         event ProposalClosed(uint256 indexed proposalId);
         event ProposerPermissionUpdated(address indexed proposer, bool allowed);
+        event BlockProven(uint256 indexed l2BlockNumber, bytes32 root, address indexed prover);
 
         // Errors
         error BadAuth();
@@ -19,13 +20,19 @@ sol! {
         error AlreadyChallenged();
         error GameNotOver();
         error GameOver();
-        error InvalidPhase();
         error AlreadyResolved();
-        error ParentNotResolved();
-        error NotFinalized();
         error NoCredit();
         error TransferFailed();
-        error InvalidProposalStatus();
+        error InvalidParentGame();
+        error BadCadence();
+        error ParentGameNotResolved();
+        error ProposingBackwards();
+        error ProposingFutureBlock();
+        error BlockAlreadyProven();
+        error L1BlockHashNotAvailable();
+        error L1BlockHashNotCheckpointed();
+        error NoCanonicalProposal();
+        error InvalidL2BlockNumber();
 
         // Enums
         enum ResolutionStatus { IN_PROGRESS, DEFENDER_WINS, CHALLENGER_WINS }
@@ -33,8 +40,8 @@ sol! {
         enum ProposalStatus {
             Unchallenged,
             Challenged,
-            UnchallengedAndValidProofProvided,
-            ChallengedAndValidProofProvided,
+            UnchallengedAndProven,
+            ChallengedAndProven,
             Resolved
         }
 
@@ -53,48 +60,55 @@ sol! {
         bytes32 public immutable AGG_VKEY;
         bytes32 public immutable RANGE_VKEY_COMMITMENT;
 
-        uint32 public anchorProposalId;
+        uint256 public anchorL2BlockNumber;
         Proposal[] public proposals;
         mapping(address => uint256) public credit;
         mapping(address => bool) public whitelistedProposer;
-        uint256 public lastProposalTimestamp;
+        mapping(uint256 => bytes32) public l1BlockHashes;
         
         struct Proposal {
             bytes32 rootClaim;
-            bytes32 l1Head;
     
             // packed slot
-            address proposer;     // 20 B
+            address proposer;
             uint32  l2BlockNumber;
             uint32  parentIndex;
             uint32  deadline;
     
-            // existing small fields stay in next slot
             uint64  resolvedAt;
-            ProposalStatus   proposalStatus;   // 1 B
-            ResolutionStatus resolutionStatus; // 1 B
+            ProposalStatus   proposalStatus;
+            ResolutionStatus resolutionStatus;
             address challenger;
             address prover;
         }
 
         // View functions
         function gameOver(uint256 proposalId) external view returns (bool);
-        function allowedProposer(address proposer) external view returns (bool);
-        function getAnchorRoot() external view returns (bytes32, uint128);
+        function l2BlockAge(uint256 l2BlockNumber) external view returns (uint256);
+        function computeL2Timestamp(uint256 _l2BlockNumber) external view returns (uint256);
+        function anchorRoot() external view returns (bytes32);
         function getProposal(uint256 id) external view returns (Proposal memory);
-        function getAnchorProposal() external view returns (Proposal memory);
+        function getAnchorRoot() external view returns (bytes32, uint256);
         function getProposals(uint256[] calldata ids) external view returns (Proposal[] memory);
-        function getProposalsLength() external view returns (uint256);
         function latestProposals(uint256 count) external view returns (uint256[] memory);
+        function getProposalsLength() external view returns (uint256);
         function isResolvable(uint256 proposalId) external view returns (bool);
         function needsDefense(uint256 proposalId) external view returns (bool);
+        function anchorProposalId() external view returns (uint256);
+        function canonicalProposalIdFor(uint256 l2BlockNumber) external view returns (uint256);
+        function canonicalProposalFor(uint256 l2BlockNumber) external view returns (Proposal memory);
+        function isWhitelistedProposer(address proposer) external view returns (bool);
+        function isInFallbackWindow(uint256 l2BlockNumber) external view returns (bool);
+        function proposalIsCanonical(uint256 proposalId) external view returns (bool);
 
         // Core functions
-        function submitProposal(bytes32 root, uint128 l2BlockNumber, uint32 parentIndex) external payable returns (uint256 proposalId);
+        function submitProposal(bytes32 root, uint256 l2BlockNumber, uint256 parentId) external payable returns (uint256 proposalId);
         function challengeProposal(uint256 id) external payable;
-        function proveProposal(uint256 id, bytes calldata proof) external;
+        function proveProposal(uint256 id, uint256 l1BlockNumber, bytes calldata proof) external;
+        function proveBlock(uint256 l2BlockNumber, bytes32 root, uint256 l1BlockNumber, bytes calldata proof) external;
         function resolveProposal(uint256 id) external;
         function claimCredit(address recipient) external;
         function setProposer(address proposer, bool allowed) external;
+        function checkpointL1BlockHash(uint256 l1BlockNumber) external;
     }
 }
