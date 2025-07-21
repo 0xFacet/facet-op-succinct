@@ -109,8 +109,8 @@ contract DeployRollupAndBridges is Script, FacetScript {
     function deployL2BridgeViaFacet(address l1BridgeAddress) internal returns (address) {
         // L2ERC20Bridge constructor takes (string name, string symbol, address l1Bridge)
         bytes memory constructorArgs = abi.encode(
-            "Test ETH",  // name
-            "tETH",       // symbol  
+            "Facet Fun Bucks",  // name
+            "FFB",       // symbol  
             l1BridgeAddress
         );
         return deployContract("L2ERC20Bridge", type(L2ERC20Bridge).creationCode, constructorArgs);
