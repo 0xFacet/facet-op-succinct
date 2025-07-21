@@ -1,11 +1,13 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit'
-import { sepolia } from 'wagmi/chains'
-import { facetSepolia } from './chains'
-import { config } from './config'
+import { config, getL1Chain } from './config'
+
+// Dynamically determine which L1 chain to include based on config
+const l1Chain = getL1Chain()
+const chains = [l1Chain] as const
 
 export const wagmiConfig = getDefaultConfig({
-  appName: 'Facet Bridge',
+  appName: 'Facet ZK Fault Proofs',
   projectId: config.walletConnectProjectId || 'YOUR_PROJECT_ID',
-  chains: [sepolia, facetSepolia],
+  chains,
   ssr: true,
 })
