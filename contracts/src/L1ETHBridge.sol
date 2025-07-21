@@ -1,34 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {Types} from "src/libraries/Types.sol";
 import {Hashing} from "src/libraries/Hashing.sol";
 import {SecureMerkleTrie} from "src/libraries/trie/SecureMerkleTrie.sol";
 import {LibFacet} from "facet-sol/src/utils/LibFacet.sol";
 import {SafeTransferLib} from "solady/src/utils/SafeTransferLib.sol";
 import {L2ERC20Bridge} from "src/L2ERC20Bridge.sol";
-
-interface IRollup {
-    struct Proposal {
-        bytes32 rootClaim;
-        address proposer;
-        uint32 l2BlockNumber;
-        uint32 parentIndex;
-        uint32 deadline;
-        uint64 resolvedAt;
-        uint8 proposalStatus;
-        uint8 resolutionStatus;
-        address challenger;
-        address prover;
-    }
-
-    function getProposal(uint256 id) external view returns (Proposal memory);
-    function proposalIsCanonical(uint256 proposalId) external view returns (bool);
-}
+import {Rollup} from "src/Rollup.sol";
 
 /**
  * @title L1ETHBridge
@@ -36,7 +18,7 @@ interface IRollup {
  *         proposals to verify withdrawals on L1. Uses a withdrawal delay
  *         for security.
  */
-contract L1ETHBridge is Ownable, ReentrancyGuard {
+contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
     using SafeTransferLib for address;
 
     /*//////////////////////////////////////////////////////////////
@@ -52,13 +34,19 @@ contract L1ETHBridge is Ownable, ReentrancyGuard {
     error WithdrawalNotProven();
     error InvalidDepositAmount();
     error L2BridgeAlreadySet();
+    error RootBlacklisted();
+    error WithdrawalDelayNotMet();
 
     /*//////////////////////////////////////////////////////////////
                                 CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    IRollup public immutable rollup;
+    Rollup public rollup;
     address public l2Bridge;
+    
+    // Training wheels
+    mapping(bytes32 => bool) public rootBlacklisted;
+    uint256 public withdrawalDelay; // seconds
 
     /*//////////////////////////////////////////////////////////////
                                STORAGE
@@ -81,6 +69,9 @@ contract L1ETHBridge is Ownable, ReentrancyGuard {
     event DepositInitiated(address indexed from, address indexed to, uint256 amount);
     event WithdrawalProven(address indexed to, uint256 amount, uint256 nonce, uint256 proposalId);
     event WithdrawalFinalised(address indexed to, uint256 amount, uint256 nonce);
+    event RollupUpdated(address indexed oldRollup, address indexed newRollup);
+    event RootBlacklistStatusChanged(bytes32 indexed root, bool blacklisted);
+    event WithdrawalDelayUpdated(uint256 oldDelay, uint256 newDelay);
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
@@ -93,7 +84,7 @@ contract L1ETHBridge is Ownable, ReentrancyGuard {
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(IRollup _rollup) {
+    constructor(Rollup _rollup) {
         rollup = _rollup;
     }
 
@@ -102,12 +93,60 @@ contract L1ETHBridge is Ownable, ReentrancyGuard {
 
         l2Bridge = _l2Bridge;
     }
+    
+    /*//////////////////////////////////////////////////////////////
+                           TRAINING WHEELS
+    //////////////////////////////////////////////////////////////*/
+    
+    /**
+     * @notice Update the rollup contract reference (for upgrades/forks)
+     * @param _rollup New rollup contract address
+     */
+    function setRollup(address _rollup) external onlyOwner {
+        address oldRollup = address(rollup);
+        rollup = Rollup(_rollup);
+        emit RollupUpdated(oldRollup, _rollup);
+    }
+    
+    /**
+     * @notice Pause the bridge
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+    
+    /**
+     * @notice Unpause the bridge
+     */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+    
+    /**
+     * @notice Blacklist or unblacklist a root
+     * @param root The root to blacklist/unblacklist
+     * @param blacklisted True to blacklist, false to unblacklist
+     */
+    function setRootBlacklisted(bytes32 root, bool blacklisted) external onlyOwner {
+        rootBlacklisted[root] = blacklisted;
+        emit RootBlacklistStatusChanged(root, blacklisted);
+    }
+    
+    /**
+     * @notice Update withdrawal delay period
+     * @param _withdrawalDelay New delay in seconds
+     */
+    function setWithdrawalDelay(uint256 _withdrawalDelay) external onlyOwner {
+        uint256 oldDelay = withdrawalDelay;
+        withdrawalDelay = _withdrawalDelay;
+        emit WithdrawalDelayUpdated(oldDelay, _withdrawalDelay);
+    }
 
     /*//////////////////////////////////////////////////////////////
                                   DEPOSIT
     //////////////////////////////////////////////////////////////*/
 
-    function initiateDeposit() public payable virtual {
+    function initiateDeposit() public payable virtual whenNotPaused {
         if (l2Bridge == address(0)) revert L2BridgeNotSet();
 
         uint256 amount = msg.value;
@@ -146,15 +185,18 @@ contract L1ETHBridge is Ownable, ReentrancyGuard {
         uint256 proposalId,
         Types.OutputRootProof calldata rootProof,
         bytes[] calldata withdrawalProof
-    ) external virtual {
+    ) external virtual whenNotPaused {
         bytes32 withdrawalHash = _hashWithdrawal(to, amount, nonce);
 
         if (proven[withdrawalHash].provenAt != 0) revert WithdrawalAlreadyProven();
         if (finalised[withdrawalHash]) revert WithdrawalAlreadyFinalised();
 
-        IRollup.Proposal memory prop = rollup.getProposal(proposalId);
+        Rollup.Proposal memory prop = rollup.getProposal(proposalId);
 
         if (!rollup.proposalIsCanonical(proposalId)) revert ProposalNotCanonical();
+        
+        // Check if root is blacklisted
+        if (rootBlacklisted[prop.rootClaim]) revert RootBlacklisted();
 
         if (prop.rootClaim != Hashing.hashOutputRootProof(rootProof)) revert InvalidOutputRoot();
 
@@ -177,13 +219,20 @@ contract L1ETHBridge is Ownable, ReentrancyGuard {
                             WITHDRAWAL – FINALISE
     //////////////////////////////////////////////////////////////*/
 
-    function finaliseWithdrawal(address to, uint256 amount, uint256 nonce) external nonReentrant {
+    function finaliseWithdrawal(address to, uint256 amount, uint256 nonce) external nonReentrant whenNotPaused {
         bytes32 withdrawalHash = _hashWithdrawal(to, amount, nonce);
 
         ProvenWithdrawal memory info = proven[withdrawalHash];
 
         if (info.provenAt == 0) revert WithdrawalNotProven();
         if (finalised[withdrawalHash]) revert WithdrawalAlreadyFinalised();
+        
+        // Respect safety delay
+        if (block.timestamp <= info.provenAt + withdrawalDelay) revert WithdrawalDelayNotMet();
+        
+        // Check if the root of the proposal used for proving is blacklisted
+        Rollup.Proposal memory prop = rollup.getProposal(info.proposalId);
+        if (rootBlacklisted[prop.rootClaim]) revert RootBlacklisted();
 
         finalised[withdrawalHash] = true;
 
