@@ -86,7 +86,10 @@ export const L1_ETH_BRIDGE_ABI = [
     type: 'function'
   },
   {
-    inputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
+    inputs: [
+      { internalType: 'bytes32', name: '', type: 'bytes32' },
+      { internalType: 'address', name: '', type: 'address' }
+    ],
     name: 'proven',
     outputs: [
       { internalType: 'uint32', name: 'proposalId', type: 'uint32' },
@@ -113,6 +116,7 @@ export const L1_ETH_BRIDGE_ABI = [
     name: 'WithdrawalProven',
     type: 'event',
     inputs: [
+      { indexed: true, name: 'rollup', type: 'address' },
       { indexed: true, name: 'to', type: 'address' },
       { indexed: false, name: 'amount', type: 'uint256' },
       { indexed: false, name: 'nonce', type: 'uint256' },
