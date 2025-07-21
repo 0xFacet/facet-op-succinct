@@ -44,3 +44,11 @@ contracts/opsuccinctl2ooconfig.json
 
 # Rollup Configs
 configs/
+
+node_modules/
+go-ffi-bin
+
+contracts/dependencies/
+contracts/lib/facet-sol/
+
+.DS_Store

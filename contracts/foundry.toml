@@ -20,7 +20,9 @@ remappings = [
     "src/dispute/=lib/optimism/packages/contracts-bedrock/src/dispute/",
     "interfaces/=lib/optimism/packages/contracts-bedrock/interfaces/",
     "@lib-keccak/=lib/lib-keccak/contracts/lib",
-    "src/cannon/libraries/=lib/optimism/packages/contracts-bedrock/src/cannon/libraries/"
+    "src/cannon/libraries/=lib/optimism/packages/contracts-bedrock/src/cannon/libraries/",
+    "facet-sol/=lib/facet-sol/",
+    "optimism/=lib/optimism/"
 ]
 
 # Enable read-write access to all files in current directory
@@ -30,5 +32,5 @@ fs_permissions = [{ access = "read-write", path = "." }]
 optimizer = true
 optimizer_runs = 200
 via_ir = true
-
+ffi = true
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
