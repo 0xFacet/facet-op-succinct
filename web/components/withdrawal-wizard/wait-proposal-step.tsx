@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query'
 import { formatEther } from 'viem'
 import { l1PublicClient, l2PublicClient, config } from '@/lib/config'
 import { type WithdrawalData } from '@/lib/withdrawal-actions'
-import { findCanonicalProposal, type OutputRootProof } from '@/lib/actions'
 import { useProposalTracking } from '@/hooks/useProposalTracking'
 import { useLatestWithdrawal } from '@/hooks/useLatestWithdrawal'
 import { ROLLUP_ABI } from '@/lib/contracts'
@@ -17,9 +16,7 @@ interface WaitProposalStepProps {
 }
 
 export function WaitProposalStep({ withdrawalData, txHash, onProposalFound }: WaitProposalStepProps) {
-  const [outputRootProof, setOutputRootProof] = useState<OutputRootProof | null>(null)
   const [l2BlockNumber, setL2BlockNumber] = useState<bigint | null>(null)
-  const [proposalInterval, setProposalInterval] = useState<number | null>(null)
   const [withdrawalTimestamp, setWithdrawalTimestamp] = useState<number | undefined>(undefined)
   
   // Get the withdrawal details to know when it was created
@@ -28,23 +25,6 @@ export function WaitProposalStep({ withdrawalData, txHash, onProposalFound }: Wa
   // Track proposals since the withdrawal
   const { latestProposal, proposalsSinceTimestamp, proposalCount } = useProposalTracking(withdrawalTimestamp)
   
-  // Get the proposal interval from the rollup contract
-  useEffect(() => {
-    async function fetchProposalInterval() {
-      try {
-        const interval = await l1PublicClient.readContract({
-          address: config.rollupAddress,
-          abi: ROLLUP_ABI,
-          functionName: 'PROPOSAL_INTERVAL'
-        })
-        setProposalInterval(Number(interval))
-      } catch (err) {
-        console.error('Failed to fetch proposal interval:', err)
-      }
-    }
-    fetchProposalInterval()
-  }, [])
-
   // Get the L2 block that contains the withdrawal
   useEffect(() => {
     async function getL2BlockData() {
@@ -54,23 +34,11 @@ export function WaitProposalStep({ withdrawalData, txHash, onProposalFound }: Wa
       const blockNumber = withdrawal.blockNumber
       setL2BlockNumber(blockNumber)
       
-      // Get the block data for output root proof and timestamp
+      // Get the block data for timestamp
       const block = await l2PublicClient.getBlock({ blockNumber })
       
       // Set the actual withdrawal timestamp from the block
       setWithdrawalTimestamp(Number(block.timestamp))
-      const stateRoot = await l2PublicClient.getProof({
-        address: '0x4200000000000000000000000000000000000016', // L2ToL1MessagePasser
-        storageKeys: [],
-        blockNumber: blockNumber
-      }).then(proof => proof.storageHash)
-
-      setOutputRootProof({
-        version: '0x0000000000000000000000000000000000000000000000000000000000000000',
-        stateRoot: stateRoot,
-        messagePasserStorageRoot: stateRoot, // Simplified - would need actual storage root
-        latestBlockhash: block.hash!
-      })
     }
 
     getL2BlockData()
@@ -212,17 +180,6 @@ export function WaitProposalStep({ withdrawalData, txHash, onProposalFound }: Wa
                       </span>
                     )}
                   </p>
-                  {/* {proposalInterval && Number(l2BlockNumber) > latestProposal.l2BlockNumber && (
-                    <p className="text-orange-600">
-                      Estimated time until proposal: {(() => {
-                        const blocksUntilNext = proposalInterval - ((Number(l2BlockNumber) - latestProposal.l2BlockNumber) % proposalInterval)
-                        const blocksNeeded = blocksUntilNext + proposalInterval // Add extra interval for finalization
-                        const secondsPerBlock = 12 // L1 and L2 block time
-                        const minutesRemaining = Math.ceil((blocksNeeded * secondsPerBlock) / 60)
-                        return `~${minutesRemaining} minutes`
-                      })()}
-                    </p>
-                  )} */}
                 </>
               )}
               <p className="text-gray-500 mt-2">
