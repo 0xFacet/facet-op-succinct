@@ -72,7 +72,7 @@ contract BridgeIntegrationTest is Test {
     // Events to test
     event DepositInitiated(address indexed from, address indexed to, uint256 amount);
     event WithdrawalInitiated(address indexed from, address indexed to, uint256 amount);
-    event WithdrawalProven(address indexed to, uint256 amount, uint256 nonce, uint256 proposalId);
+    event WithdrawalProven(address indexed rollup, address indexed to, uint256 amount, uint256 nonce, uint256 proposalId);
     event WithdrawalFinalized(address indexed to, uint256 amount, uint256 nonce);
     event FacetTransactionSent(address indexed to, uint256 gasLimit, bytes data);
 
@@ -319,7 +319,7 @@ contract BridgeIntegrationTest is Test {
 
         // Prove withdrawal
         vm.expectEmit(true, true, true, true);
-        emit WithdrawalProven(user, withdrawAmount, nonce, proposalId);
+        emit WithdrawalProven(address(rollup), user, withdrawAmount, nonce, proposalId);
 
         l1Bridge.proveWithdrawal(user, withdrawAmount, nonce, proposalId, outputRootProof, withdrawalProof);
 

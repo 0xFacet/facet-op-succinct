@@ -57,9 +57,7 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
         uint32 provenAt;
     }
 
-    // withdrawalHash => ProvenWithdrawal
-    mapping(bytes32 => ProvenWithdrawal) public proven;
-    // withdrawalHash => finalized?
+    mapping(bytes32 => mapping(Rollup => ProvenWithdrawal)) public proven;
     mapping(bytes32 => bool) public finalized;
 
     /*//////////////////////////////////////////////////////////////
@@ -67,7 +65,7 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     event DepositInitiated(address indexed from, address indexed to, uint256 amount);
-    event WithdrawalProven(address indexed to, uint256 amount, uint256 nonce, uint256 proposalId);
+    event WithdrawalProven(address indexed rollup, address indexed to, uint256 amount, uint256 nonce, uint256 proposalId);
     event WithdrawalFinalized(address indexed to, uint256 amount, uint256 nonce);
     event RollupUpdated(address indexed oldRollup, address indexed newRollup);
     event RootBlacklistStatusChanged(bytes32 indexed root, bool blacklisted);
@@ -188,12 +186,13 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
     ) external virtual whenNotPaused {
         bytes32 withdrawalHash = _hashWithdrawal(to, amount, nonce);
 
-        if (proven[withdrawalHash].provenAt != 0) revert WithdrawalAlreadyProven();
+        ProvenWithdrawal storage info = proven[withdrawalHash][rollup];
+
+        if (info.provenAt != 0) revert WithdrawalAlreadyProven();
         if (finalized[withdrawalHash]) revert WithdrawalAlreadyFinalized();
+        if (!rollup.proposalIsCanonical(proposalId)) revert ProposalNotCanonical();
 
         Rollup.Proposal memory prop = rollup.getProposal(proposalId);
-
-        if (!rollup.proposalIsCanonical(proposalId)) revert ProposalNotCanonical();
         
         // Check if root is blacklisted
         if (rootBlacklisted[prop.rootClaim]) revert RootBlacklisted();
@@ -210,9 +209,12 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
         });
         if (!valid) revert InvalidWithdrawalProof();
 
-        proven[withdrawalHash] = ProvenWithdrawal({proposalId: uint32(proposalId), provenAt: uint32(block.timestamp)});
+        proven[withdrawalHash][rollup] = ProvenWithdrawal({
+            proposalId: uint32(proposalId),
+            provenAt: uint32(block.timestamp)
+        });
 
-        emit WithdrawalProven(to, amount, nonce, proposalId);
+        emit WithdrawalProven(address(rollup), to, amount, nonce, proposalId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -222,7 +224,7 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
     function finalizeWithdrawal(address to, uint256 amount, uint256 nonce) external nonReentrant whenNotPaused {
         bytes32 withdrawalHash = _hashWithdrawal(to, amount, nonce);
 
-        ProvenWithdrawal memory info = proven[withdrawalHash];
+        ProvenWithdrawal storage info = proven[withdrawalHash][rollup];
 
         if (info.provenAt == 0) revert WithdrawalNotProven();
         if (finalized[withdrawalHash]) revert WithdrawalAlreadyFinalized();
