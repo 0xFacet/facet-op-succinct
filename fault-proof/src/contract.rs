@@ -9,10 +9,10 @@ sol! {
         event ProposalChallenged(uint256 indexed proposalId, address indexed challenger);
         event ProposalProven(uint256 indexed proposalId, address indexed prover);
         event ProposalResolved(uint256 indexed proposalId, ResolutionStatus status);
-        event AnchorUpdated(uint256 indexed proposalId, bytes32 root, uint128 l2BlockNumber);
+        event AnchorUpdated(uint256 indexed proposalId, bytes32 root, uint256 l2BlockNumber);
         event ProposalClosed(uint256 indexed proposalId);
         event ProposerPermissionUpdated(address indexed proposer, bool allowed);
-        event BlockProven(uint128 indexed l2BlockNumber, bytes32 root, address indexed prover);
+        event BlockProven(uint256 indexed l2BlockNumber, bytes32 root, address indexed prover);
 
         // Errors
         error BadAuth();
@@ -102,10 +102,10 @@ sol! {
         function proposalIsCanonical(uint256 proposalId) external view returns (bool);
 
         // Core functions
-        function submitProposal(bytes32 root, uint128 l2BlockNumber, uint256 parentId) external payable returns (uint256 proposalId);
+        function submitProposal(bytes32 root, uint256 l2BlockNumber, uint256 parentId) external payable returns (uint256 proposalId);
         function challengeProposal(uint256 id) external payable;
         function proveProposal(uint256 id, uint256 l1BlockNumber, bytes calldata proof) external;
-        function proveBlock(uint128 l2BlockNumber, bytes32 root, uint256 l1BlockNumber, bytes calldata proof) external;
+        function proveBlock(uint256 l2BlockNumber, bytes32 root, uint256 l1BlockNumber, bytes calldata proof) external;
         function resolveProposal(uint256 id) external;
         function claimCredit(address recipient) external;
         function setProposer(address proposer, bool allowed) external;

@@ -67,10 +67,10 @@ contract Rollup is Ownable, ReentrancyGuard {
     event ProposalChallenged(uint256 indexed proposalId, address indexed challenger);
     event ProposalProven(uint256 indexed proposalId, address indexed prover);
     event ProposalResolved(uint256 indexed proposalId, ResolutionStatus status);
-    event AnchorUpdated(uint256 indexed proposalId, bytes32 root, uint128 l2BlockNumber);
+    event AnchorUpdated(uint256 indexed proposalId, bytes32 root, uint256 l2BlockNumber);
     event ProposalClosed(uint256 indexed proposalId);
     event ProposerPermissionUpdated(address indexed proposer, bool allowed);
-    event BlockProven(uint128 indexed l2BlockNumber, bytes32 root, address indexed prover);
+    event BlockProven(uint256 indexed l2BlockNumber, bytes32 root, address indexed prover);
     event L1BlockHashCheckpointed(uint256 indexed l1BlockNumber, bytes32 blockHash);
 
     /*//////////////////////////////////////////////////////////////
@@ -259,7 +259,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     /// @dev Requires PROPOSER_BOND and proposer must be whitelisted or in fallback window
     function submitProposal(
         bytes32 root,
-        uint128 l2BlockNumber,
+        uint256 l2BlockNumber,
         uint256  parentId
     ) external payable returns (uint256 proposalId) {
         if (msg.value != PROPOSER_BOND) revert IncorrectBondAmount();
@@ -299,7 +299,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     /// @param proof ZK proof of state transition from anchor to this block
     /// @dev Creates, proves, and resolves a proposal atomically. No bond required.
     function proveBlock(
-        uint128 l2BlockNumber,
+        uint256 l2BlockNumber,
         bytes32 root,
         uint256 l1BlockNumber,
         bytes calldata proof
