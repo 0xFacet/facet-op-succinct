@@ -7,7 +7,7 @@ import { l2PublicClient, l1PublicClient, config } from '@/lib/config'
 import { L2_TO_L1_MESSAGE_PASSER_ABI, L2_TO_L1_MESSAGE_PASSER_ADDRESS } from '@/lib/contracts'
 import { getWithdrawalStatus } from '@/lib/withdrawal-actions'
 import type { WithdrawalData } from '@/lib/withdrawal-actions'
-import { L1_ETH_BRIDGE_ABI } from '@/lib/contracts'
+import { L1_BRIDGE_ABI } from '@/lib/contracts'
 
 interface LatestWithdrawal {
   withdrawalData: WithdrawalData
@@ -41,8 +41,8 @@ export function useLatestWithdrawal() {
         setError(null)
 
         // Get the L2 bridge address from L1 contract and ensure checksummed format
-        const l2BridgeAddress = getAddress(config.l2ETHBridgeAddress)
-        const l1BridgeAddress = getAddress(config.l1ETHBridgeAddress)
+        const l2BridgeAddress = getAddress(config.l2BridgeAddress)
+        const l1BridgeAddress = getAddress(config.l1BridgeAddress)
 
         // Now use the checksummed addresses in the RPC filter
         const logs = await l2PublicClient.getLogs({
@@ -89,8 +89,8 @@ export function useLatestWithdrawal() {
           
           // Check if this withdrawal is finalized
           const isFinalized = await l1PublicClient.readContract({
-            address: config.l1ETHBridgeAddress,
-            abi: L1_ETH_BRIDGE_ABI,
+            address: config.l1BridgeAddress,
+            abi: L1_BRIDGE_ABI,
             functionName: 'finalized',
             args: [withdrawalHash]
           })

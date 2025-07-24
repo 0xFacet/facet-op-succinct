@@ -135,7 +135,7 @@ const config = {
   l2RpcUrl: process.env.L2_RPC_URL!,
   
   // Contract addresses - these should be set after deployment
-  l1ETHBridgeAddress: "0x4A7Db6a4ACe349d69BB72E73ABe2712a76E15428" as Address,
+  l1BridgeAddress: "0x4A7Db6a4ACe349d69BB72E73ABe2712a76E15428" as Address,
   rollupAddress: "0xb3e0406017407baEd43652C440b304B858432B98" as Address,
   
   // L2 constants
@@ -212,7 +212,7 @@ async function main() {
     process.exit(1);
   }
 
-  if (config.l1ETHBridgeAddress === '0x...' || config.rollupAddress === '0x...') {
+  if (config.l1BridgeAddress === '0x...' || config.rollupAddress === '0x...') {
     console.error('❌ Contract addresses not set. Please deploy contracts first and update .env.sepolia');
     process.exit(1);
   }
@@ -257,7 +257,7 @@ async function main() {
 
   // Get L2 bridge address
   const l2BridgeAddress = await l1Client.readContract({
-    address: config.l1ETHBridgeAddress,
+    address: config.l1BridgeAddress,
     abi: L1_BRIDGE_ABI,
     functionName: 'l2Bridge'
   });
@@ -270,21 +270,21 @@ async function main() {
     withdrawalParams.amount,
     withdrawalParams.nonce,
     l2BridgeAddress,
-    config.l1ETHBridgeAddress
+    config.l1BridgeAddress
   );
 
   console.log(`Withdrawal Hash: ${withdrawalHash}\n`);
 
   // Check if already proven/finalized
   const provenInfo = await l1Client.readContract({
-    address: config.l1ETHBridgeAddress,
+    address: config.l1BridgeAddress,
     abi: L1_BRIDGE_ABI,
     functionName: 'proven',
     args: [withdrawalHash]
   });
 
   const isFinalized = await l1Client.readContract({
-    address: config.l1ETHBridgeAddress,
+    address: config.l1BridgeAddress,
     abi: L1_BRIDGE_ABI,
     functionName: 'finalized',
     args: [withdrawalHash]
@@ -383,7 +383,7 @@ async function main() {
     // Submit proof
     console.log('\nSubmitting withdrawal proof...');
     const proveTx = await l1WalletClient.writeContract({
-      address: config.l1ETHBridgeAddress,
+      address: config.l1BridgeAddress,
       abi: L1_BRIDGE_ABI,
       functionName: 'proveWithdrawal',
       args: [
@@ -408,7 +408,7 @@ async function main() {
 
   // Get latest proven info
   const latestProvenInfo = await l1Client.readContract({
-    address: config.l1ETHBridgeAddress,
+    address: config.l1BridgeAddress,
     abi: L1_BRIDGE_ABI,
     functionName: 'proven',
     args: [withdrawalHash]
@@ -432,7 +432,7 @@ async function main() {
   
   console.log('Submitting finalization transaction...');
   const finalizeTx = await l1WalletClient.writeContract({
-    address: config.l1ETHBridgeAddress,
+    address: config.l1BridgeAddress,
     abi: L1_BRIDGE_ABI,
     functionName: 'finalizeWithdrawal',
     args: [withdrawalParams.to, withdrawalParams.amount, withdrawalParams.nonce]

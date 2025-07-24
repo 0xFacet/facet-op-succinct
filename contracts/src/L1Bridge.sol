@@ -9,16 +9,47 @@ import {Hashing} from "src/libraries/Hashing.sol";
 import {SecureMerkleTrie} from "src/libraries/trie/SecureMerkleTrie.sol";
 import {LibFacet} from "facet-sol/src/utils/LibFacet.sol";
 import {SafeTransferLib} from "solady/src/utils/SafeTransferLib.sol";
-import {L2ERC20Bridge} from "src/L2ERC20Bridge.sol";
+import {L2Bridge} from "src/L2Bridge.sol";
 import {Rollup} from "src/Rollup.sol";
 
 /**
- * @title L1ETHBridge
- * @notice Minimal ERC-20 bridge that demonstrates how to use Rollup canonical
- *         proposals to verify withdrawals on L1. Uses a withdrawal delay
- *         for security.
+ * @title L1Bridge
+ * @notice L1 ETH bridge that accepts deposits and uses ZK proofs to verify withdrawal claims.
+ * 
+ * @dev CRITICAL ARCHITECTURE NOTICE FOR USERS:
+ * 
+ * This bridge verifies withdrawals using ZK proofs from a Rollup contract. Unlike bridges that
+ * rely on upgradeable proof systems, each Rollup contract here is immutable - hardcoded to prove
+ * one specific state transition function forever.
+ * 
+ * KEY IMPLICATIONS:
+ * 
+ * 1. FORK HANDLING: When the L2 network upgrades, this bridge won't automatically recognize the
+ *    new rules. The bridge owner must call setRollup() to point to a new Rollup contract that
+ *    proves the updated state transition function.
+ * 
+ * 2. OWNERSHIP TRADE-OFFS:
+ *    - With active owner: Can adapt to forks but requires trusting the owner won't set a 
+ *      malicious rollup contract
+ *    - With renounced ownership: Becomes trustless* with respect to human operators,
+ *      but permanently locked to a single fork's rules (*Security depends solely on the ZK proof 
+ *      system and smart contract correctness)
+ * 
+ * 3. TRUST MODELS: Users can choose between:
+ *    - Active ownership: Trust a human operator to handle forks properly (more flexible)
+ *    - Renounced ownership: Trust only the code and ZK proofs (more secure but less flexible)
+ * 
+ * 4. FORK INCOMPATIBILITY: If the L2 network forks and modifies how bridged assets work, but
+ *    this bridge isn't updated to point to a new Rollup contract, those modifications won't be
+ *    reflected in withdrawal capabilities. Your assets remain subject to the original rules.
+ * 
+ * RECOMMENDATION: Before depositing, verify:
+ * - Current owner status: check owner() - address(0) means renounced
+ * - If owned: research the owner's reputation and track record
+ * - Which Rollup contract is currently being used (check rollup() function)
+ * - Your preference: human-free operation vs flexibility for upgrades
  */
-contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
+contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
     using SafeTransferLib for address;
 
     /*//////////////////////////////////////////////////////////////
@@ -97,8 +128,11 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
     
     /**
-     * @notice Update the rollup contract reference (for upgrades/forks)
-     * @param _rollup New rollup contract address
+     * @notice Update the rollup contract reference to support new forks or state transition rules.
+     * @dev CRITICAL: This function enables fork flexibility but also represents the primary
+     *      trust assumption. If ownership is renounced, this function becomes inaccessible,
+     *      making the bridge trustless (no human control) but locked to the current state transition rules.
+     * @param _rollup New rollup contract address that proves the updated state transition rules
      */
     function setRollup(address _rollup) external onlyOwner {
         address oldRollup = address(rollup);
@@ -152,7 +186,7 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
 
         if (amount == 0) revert InvalidDepositAmount();
 
-        bytes memory data = abi.encodeWithSelector(L2ERC20Bridge.finalizeDeposit.selector, recipient, amount);
+        bytes memory data = abi.encodeWithSelector(L2Bridge.finalizeDeposit.selector, recipient, amount);
 
         LibFacet.sendFacetTransaction({to: l2Bridge, gasLimit: 1_000_000, data: data});
 
@@ -169,10 +203,13 @@ contract L1ETHBridge is Ownable, ReentrancyGuard, Pausable {
 
     /**
      * @notice Prove a withdrawal by verifying merkle proof against canonical L2 state
+     * @dev This verification is bound to the current rollup contract's state transition rules.
+     *      If the L2 forks but this bridge's rollup reference isn't updated, withdrawals
+     *      must still conform to the original state transition function's rules.
      * @param amount Amount of tokens to withdraw
      * @param to Recipient address on L1
      * @param nonce Withdrawal nonce from L2
-     * @param proposalId The canonical proposal ID from Rollup contract
+     * @param proposalId The canonical proposal ID from current Rollup contract
      * @param rootProof The merkle proof components from the L2 output root
      * @param withdrawalProof Merkle proof path in the L2ToL1MessagePasser storage trie
      */

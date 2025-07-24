@@ -115,8 +115,8 @@ export function useCrossDomainMessage({
                 // Compute expected hash to double-check
                 const calculatedHash = computeWithdrawalHash({
                   nonce: nonce,
-                  l2Bridge: config.l2ETHBridgeAddress,
-                  l1Bridge: config.l1ETHBridgeAddress,
+                  l2Bridge: config.l2BridgeAddress,
+                  l1Bridge: config.l1BridgeAddress,
                   to: userAddress,
                   amount: expectedAmount
                 })

@@ -10,11 +10,11 @@ interface IL2ToL1MessagePasser {
 }
 
 /**
- * @title L2ERC20Bridge
+ * @title L2Bridge
  * @notice Simple L2 side of an ERC-20 bridge. Only the authorised L1 bridge
  *         may mint tokens; anyone may burn to withdraw back to L1.
  */
-contract L2ERC20Bridge is ERC20 {
+contract L2Bridge is ERC20 {
     /*//////////////////////////////////////////////////////////////
                             CUSTOM ERRORS
     //////////////////////////////////////////////////////////////*/

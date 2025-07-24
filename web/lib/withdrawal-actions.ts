@@ -9,7 +9,7 @@ import {
   decodeEventLog
 } from 'viem'
 import { l1PublicClient, l2PublicClient, config } from './config'
-import { ROLLUP_ABI, L1_ETH_BRIDGE_ABI, L2_TO_L1_MESSAGE_PASSER_ABI, L2_TO_L1_MESSAGE_PASSER_ADDRESS } from './contracts'
+import { ROLLUP_ABI, L1_BRIDGE_ABI, L2_TO_L1_MESSAGE_PASSER_ABI, L2_TO_L1_MESSAGE_PASSER_ADDRESS } from './contracts'
 import type { OutputRootProof } from './actions/types'
 
 export interface WithdrawalData {
@@ -180,14 +180,14 @@ function hashOutputRootProof(proof: OutputRootProof): Hash {
 export async function getWithdrawalStatus(withdrawalHash: Hash) {
   const [provenInfo, isFinalized] = await Promise.all([
     l1PublicClient.readContract({
-      address: config.l1ETHBridgeAddress,
-      abi: L1_ETH_BRIDGE_ABI,
+      address: config.l1BridgeAddress,
+      abi: L1_BRIDGE_ABI,
       functionName: 'proven',
       args: [withdrawalHash, config.rollupAddress]
     }),
     l1PublicClient.readContract({
-      address: config.l1ETHBridgeAddress,
-      abi: L1_ETH_BRIDGE_ABI,
+      address: config.l1BridgeAddress,
+      abi: L1_BRIDGE_ABI,
       functionName: 'finalized',
       args: [withdrawalHash]
     })

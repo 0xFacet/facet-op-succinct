@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { formatEther } from 'viem'
 import { useWalletClient, useChainId, useSwitchChain } from 'wagmi'
 import { l1PublicClient, config } from '@/lib/config'
-import { L1_ETH_BRIDGE_ABI } from '@/lib/contracts'
+import { L1_BRIDGE_ABI } from '@/lib/contracts'
 import type { WithdrawalData } from '@/lib/withdrawal-actions'
 
 interface FinalizeStepProps {
@@ -58,8 +58,8 @@ export function FinalizeStep({ withdrawalData, provenAt, onFinalized }: Finalize
     try {
       // Submit finalize transaction
       const tx = await walletClient.writeContract({
-        address: config.l1ETHBridgeAddress,
-        abi: L1_ETH_BRIDGE_ABI,
+        address: config.l1BridgeAddress,
+        abi: L1_BRIDGE_ABI,
         functionName: 'finalizeWithdrawal',
         args: [
           withdrawalData.to,

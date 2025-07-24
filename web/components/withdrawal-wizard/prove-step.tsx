@@ -72,7 +72,7 @@ export function ProveStep({ withdrawalData, proposalId, onProven }: ProveStepPro
         proposalId: BigInt(proposalId),
         outputRoot: proposal.rootClaim,
         l2BlockNumber: BigInt(proposal.l2BlockNumber), // Use the proposal's block number
-        bridgeAddress: config.l1ETHBridgeAddress,
+        bridgeAddress: config.l1BridgeAddress,
         l2Client: l2PublicClient
       })
 

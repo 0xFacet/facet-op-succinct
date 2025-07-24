@@ -6,8 +6,8 @@ import {Test} from "forge-std/Test.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
 // Contracts
-import {L1ETHBridge} from "../src/L1ETHBridge.sol";
-import {L2ERC20Bridge} from "../src/L2ERC20Bridge.sol";
+import {L1Bridge} from "../src/L1Bridge.sol";
+import {L2Bridge} from "../src/L2Bridge.sol";
 import {Rollup} from "../src/Rollup.sol";
 import {Types} from "src/libraries/Types.sol";
 import {Hashing} from "src/libraries/Hashing.sol";
@@ -26,8 +26,8 @@ contract MockSP1Verifier is ISP1Verifier {
  * @dev Merkle proof verification is acknowledged as a limitation
  */
 contract BridgeIntegrationSimpleTest is Test {
-    L1ETHBridge public l1Bridge;
-    L2ERC20Bridge public l2Bridge;
+    L1Bridge public l1Bridge;
+    L2Bridge public l2Bridge;
     Rollup public rollup;
     
     address constant user = address(0x1234);
@@ -67,8 +67,8 @@ contract BridgeIntegrationSimpleTest is Test {
         vm.deal(proposer, 10 ether);
         
         // Deploy bridges
-        l1Bridge = new L1ETHBridge(Rollup(address(rollup)));
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l1Bridge = new L1Bridge(Rollup(address(rollup)));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
         
         // Fund bridge for withdrawals
@@ -88,7 +88,7 @@ contract BridgeIntegrationSimpleTest is Test {
         vm.deal(user, depositAmount);
         
         vm.expectEmit(true, true, true, true);
-        emit L1ETHBridge.DepositInitiated(user, user, depositAmount);
+        emit L1Bridge.DepositInitiated(user, user, depositAmount);
         
         vm.prank(user);
         l1Bridge.initiateDeposit{value: depositAmount}();
@@ -107,7 +107,7 @@ contract BridgeIntegrationSimpleTest is Test {
         );
         
         // Try to prove withdrawal with non-canonical proposal
-        vm.expectRevert(L1ETHBridge.ProposalNotCanonical.selector);
+        vm.expectRevert(L1Bridge.ProposalNotCanonical.selector);
         l1Bridge.proveWithdrawal(
             user,
             1 ether,
@@ -135,7 +135,7 @@ contract BridgeIntegrationSimpleTest is Test {
         // 5. Try to finalize again and expect revert
         
         // For now, we just test the revert on unproven withdrawal
-        vm.expectRevert(L1ETHBridge.WithdrawalNotProven.selector);
+        vm.expectRevert(L1Bridge.WithdrawalNotProven.selector);
         l1Bridge.finalizeWithdrawal(user, 1 ether, 0);
     }
 }
