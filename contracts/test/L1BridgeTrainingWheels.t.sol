@@ -2,7 +2,7 @@
 pragma solidity 0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {L1ETHBridge} from "src/L1ETHBridge.sol";
+import {L1Bridge} from "src/L1Bridge.sol";
 import {Rollup} from "src/Rollup.sol";
 import {ISP1Verifier} from "@sp1-contracts/src/ISP1Verifier.sol";
 import {Types} from "src/libraries/Types.sol";
@@ -27,11 +27,11 @@ contract MockVerifier is ISP1Verifier {
     }
 }
 
-contract L1ETHBridgeTrainingWheelsTest is Test {
+contract L1BridgeTrainingWheelsTest is Test {
     // Events from Pausable
     event Paused(address account);
     event Unpaused(address account);
-    L1ETHBridge public bridge;
+    L1Bridge public bridge;
     Rollup public rollup;
     Rollup public newRollup;
     
@@ -83,7 +83,7 @@ contract L1ETHBridgeTrainingWheelsTest is Test {
             bytes32(uint256(3))
         );
         
-        bridge = new L1ETHBridge(rollup);
+        bridge = new L1Bridge(rollup);
         bridge.setL2Bridge(l2Bridge);
         
         // Add proposer to whitelist
@@ -192,7 +192,7 @@ contract L1ETHBridgeTrainingWheelsTest is Test {
         
         // Cannot prove withdrawal with blacklisted root
         vm.prank(user);
-        vm.expectRevert(L1ETHBridge.RootBlacklisted.selector);
+        vm.expectRevert(L1Bridge.RootBlacklisted.selector);
         bridge.proveWithdrawal(
             user,
             0.1 ether,
@@ -216,7 +216,7 @@ contract L1ETHBridgeTrainingWheelsTest is Test {
         // Update rollup
         vm.prank(owner);
         vm.expectEmit(true, true, false, false);
-        emit L1ETHBridge.RollupUpdated(address(rollup), address(newRollup));
+        emit L1Bridge.RollupUpdated(address(rollup), address(newRollup));
         bridge.setRollup(address(newRollup));
         
         // Check updated rollup
@@ -234,7 +234,7 @@ contract L1ETHBridgeTrainingWheelsTest is Test {
         
         // Verify bridge queries new rollup - expect ProposalNotCanonical since we didn't resolve it
         vm.prank(user);
-        vm.expectRevert(L1ETHBridge.ProposalNotCanonical.selector);
+        vm.expectRevert(L1Bridge.ProposalNotCanonical.selector);
         bridge.proveWithdrawal(
             user,
             0.1 ether,
@@ -278,12 +278,12 @@ contract L1ETHBridgeTrainingWheelsTest is Test {
         // Test blacklist event
         bytes32 root = bytes32(uint256(123));
         vm.expectEmit(true, false, false, false);
-        emit L1ETHBridge.RootBlacklistStatusChanged(root, true);
+        emit L1Bridge.RootBlacklistStatusChanged(root, true);
         bridge.setRootBlacklisted(root, true);
         
         // Test rollup update event
         vm.expectEmit(true, true, false, false);
-        emit L1ETHBridge.RollupUpdated(address(rollup), address(newRollup));
+        emit L1Bridge.RollupUpdated(address(rollup), address(newRollup));
         bridge.setRollup(address(newRollup));
         
         vm.stopPrank();

@@ -49,7 +49,7 @@ export const ROLLUP_ABI = [
   }
 ] as const satisfies Abi
 
-export const L1_ETH_BRIDGE_ABI = [
+export const L1_BRIDGE_ABI = [
   {
     inputs: [
       { internalType: 'address', name: 'to', type: 'address' },

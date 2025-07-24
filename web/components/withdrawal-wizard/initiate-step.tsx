@@ -89,7 +89,7 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
       
       try {
         const balance = await l2PublicClient.readContract({
-          address: config.l2ETHBridgeAddress,
+          address: config.l2BridgeAddress,
           abi: ERC20_ABI,
           functionName: 'balanceOf',
           args: [address]
@@ -162,7 +162,7 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
         }
         
         const hash = await writeFacetContract(walletClient, {
-          address: config.l2ETHBridgeAddress,
+          address: config.l2BridgeAddress,
           abi: l2ETHBridgeAbi,
           functionName: 'initiateWithdrawal',
           args: [address, value],

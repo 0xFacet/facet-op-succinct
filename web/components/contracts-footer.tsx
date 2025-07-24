@@ -30,25 +30,25 @@ export function ContractsFooter() {
                 </a>
               </li>
               <li>
-                <div className="text-sm text-gray-600">L1 ETH Bridge</div>
+                <div className="text-sm text-gray-600">L1 Bridge</div>
                 <a 
-                  href={`${l1Explorer}/address/${config.l1ETHBridgeAddress}`}
+                  href={`${l1Explorer}/address/${config.l1BridgeAddress}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-mono break-all"
                 >
-                  {config.l1ETHBridgeAddress}
+                  {config.l1BridgeAddress}
                 </a>
               </li>
               <li>
-                <div className="text-sm text-gray-600">L2 ERC20 Bridge</div>
+                <div className="text-sm text-gray-600">L2 Bridge</div>
                 <a 
-                  href={`${l2Explorer}/address/${config.l2ETHBridgeAddress}`}
+                  href={`${l2Explorer}/address/${config.l2BridgeAddress}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-mono break-all"
                 >
-                  {config.l2ETHBridgeAddress}
+                  {config.l2BridgeAddress}
                 </a>
               </li>
             </ul>

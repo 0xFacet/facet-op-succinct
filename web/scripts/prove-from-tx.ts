@@ -45,7 +45,7 @@ const config = {
   privateKey: (process.env.PRIVATE_KEY || '0x') as `0x${string}`,
   l1RpcUrl: process.env.L1_RPC || 'https://eth-sepolia.g.alchemy.com/v2/demo',
   l2RpcUrl: process.env.L2_RPC || 'https://sepolia.optimism.io',
-  l1ETHBridgeAddress: (process.env.L1_ETH_BRIDGE_ADDRESS || '0x4A7Db6a4ACe349d69BB72E73ABe2712a76E15428') as Address,
+  l1BridgeAddress: (process.env.L1_BRIDGE_ADDRESS || '0x4A7Db6a4ACe349d69BB72E73ABe2712a76E15428') as Address,
   rollupAddress: (process.env.ROLLUP_ADDRESS || '0xb3e0406017407baEd43652C440b304B858432B98') as Address,
   withdrawalDelaySecs: Number(process.env.WITHDRAWAL_DELAY_SECS || 60),
 };
@@ -66,7 +66,7 @@ const l1WalletClient = createWalletClient({
 async function main() {
   console.log('🔍 OP Succinct Withdrawal Prover\n');
   console.log(`Transaction: ${txHash}`);
-  console.log(`L1 Bridge: ${config.l1ETHBridgeAddress}`);
+  console.log(`L1 Bridge: ${config.l1BridgeAddress}`);
   console.log(`Rollup: ${config.rollupAddress}\n`);
 
   try {
@@ -113,7 +113,7 @@ async function main() {
       to,
       amount,
       nonce,
-      bridgeAddress: config.l1ETHBridgeAddress
+      bridgeAddress: config.l1BridgeAddress
     });
     
     if (status.isFinalized) {
@@ -163,7 +163,7 @@ async function main() {
         proposalId: BigInt(proposalId),
         outputRoot: l2Block.hash!,
         l2BlockNumber: BigInt(receipt.blockNumber),
-        bridgeAddress: config.l1ETHBridgeAddress,
+        bridgeAddress: config.l1BridgeAddress,
         l2Client
       });
       
@@ -189,7 +189,7 @@ async function main() {
       to,
       amount,
       nonce,
-      bridgeAddress: config.l1ETHBridgeAddress
+      bridgeAddress: config.l1BridgeAddress
     });
     
     if (updatedStatus.canFinalize) {
@@ -199,7 +199,7 @@ async function main() {
         to,
         amount,
         nonce,
-        bridgeAddress: config.l1ETHBridgeAddress
+        bridgeAddress: config.l1BridgeAddress
       });
       
       console.log(`Finalize transaction: ${finalizeTx}`);

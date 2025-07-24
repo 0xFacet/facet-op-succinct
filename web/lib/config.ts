@@ -11,8 +11,8 @@ export const config = {
   l2RpcUrl: process.env.NEXT_PUBLIC_L2_RPC_URL || 'https://sepolia.facet.org',
   
   rollupAddress: (process.env.NEXT_PUBLIC_ROLLUP_ADDRESS || '0x0002fcfc87d560dfff2e20c9eadb17f59b2c3dc9') as Address,
-  l1ETHBridgeAddress: (process.env.NEXT_PUBLIC_L1_ETH_BRIDGE_ADDRESS || '0x59bef954265a3957e736699de754ef3f2f3194ac') as Address,
-  l2ETHBridgeAddress: (process.env.NEXT_PUBLIC_L2_ETH_BRIDGE_ADDRESS || '0x8484Fa5EE3a7d1Fd588D970fA655B10043962c45') as Address,
+  l1BridgeAddress: (process.env.NEXT_PUBLIC_L1_BRIDGE_ADDRESS || '0x59bef954265a3957e736699de754ef3f2f3194ac') as Address,
+  l2BridgeAddress: (process.env.NEXT_PUBLIC_L2_BRIDGE_ADDRESS || '0x8484Fa5EE3a7d1Fd588D970fA655B10043962c45') as Address,
   
   withdrawalDelaySecs: Number(process.env.NEXT_PUBLIC_WITHDRAWAL_DELAY_SECS || 60),
   

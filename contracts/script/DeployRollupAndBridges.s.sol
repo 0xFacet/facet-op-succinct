@@ -6,8 +6,8 @@ import {console} from "forge-std/console.sol";
 import {LibString} from "@solady/utils/LibString.sol";
 
 import {Rollup} from "../src/Rollup.sol";
-import {L1ETHBridge} from "../src/L1ETHBridge.sol";
-import {L2ERC20Bridge} from "../src/L2ERC20Bridge.sol";
+import {L1Bridge} from "../src/L1Bridge.sol";
+import {L2Bridge} from "../src/L2Bridge.sol";
 import {ISP1Verifier} from "@sp1-contracts/src/ISP1Verifier.sol";
 import {SP1MockVerifier} from "@sp1-contracts/src/SP1MockVerifier.sol";
 import {LibFacet} from "facet-sol/src/utils/LibFacet.sol";
@@ -27,13 +27,13 @@ contract DeployRollupAndBridges is Script, FacetScript {
         address verifierAddr = deployVerifier(useMockVerifier);
         Rollup rollup = deployRollup(verifierAddr, useMockVerifier);
         
-        // Step 2: Deploy L1 ETH Bridge
-        console.log("\n=== Deploying L1 ETH Bridge ===");
-        L1ETHBridge l1Bridge = new L1ETHBridge(Rollup(address(rollup)));
-        console.log("L1 ETH Bridge deployed at:", address(l1Bridge));
+        // Step 2: Deploy L1 Bridge
+        console.log("\n=== Deploying L1 Bridge ===");
+        L1Bridge l1Bridge = new L1Bridge(Rollup(address(rollup)));
+        console.log("L1 Bridge deployed at:", address(l1Bridge));
         
         // Step 3: Deploy L2 Bridge using Facet approach
-        console.log("\n=== Deploying L2 ERC20 Bridge via Facet ===");
+        console.log("\n=== Deploying L2 Bridge via Facet ===");
         address l2BridgeAddress = deployL2BridgeViaFacet(address(l1Bridge));
         
         // Step 4: Link bridges
@@ -58,14 +58,14 @@ contract DeployRollupAndBridges is Script, FacetScript {
         console.log("Deployment Summary");
         console.log("========================================");
         console.log("Rollup:", address(rollup));
-        console.log("L1 ETH Bridge:", address(l1Bridge));
-        console.log("L2 ERC20 Bridge:", l2BridgeAddress);
+        console.log("L1 Bridge:", address(l1Bridge));
+        console.log("L2 Bridge:", l2BridgeAddress);
         console.log("SP1 Verifier:", verifierAddr);
         console.log("========================================\n");
         
         // Output configuration for withdrawal script
         console.log("Configuration for withdrawal script:");
-        console.log("export L1_ETH_BRIDGE_ADDRESS='%s'", address(l1Bridge));
+        console.log("export L1_BRIDGE_ADDRESS='%s'", address(l1Bridge));
         console.log("export ROLLUP_ADDRESS='%s'", address(rollup));
         console.log("export L2_BRIDGE_ADDRESS='%s'", l2BridgeAddress);
     }
@@ -110,13 +110,13 @@ contract DeployRollupAndBridges is Script, FacetScript {
     }
     
     function deployL2BridgeViaFacet(address l1BridgeAddress) internal returns (address) {
-        // L2ERC20Bridge constructor takes (string name, string symbol, address l1Bridge)
+        // L2Bridge constructor takes (string name, string symbol, address l1Bridge)
         bytes memory constructorArgs = abi.encode(
             "Facet Fun Bucks",  // name
             "FFB",       // symbol  
             l1BridgeAddress
         );
-        return deployContract("L2ERC20Bridge", type(L2ERC20Bridge).creationCode, constructorArgs);
+        return deployContract("L2Bridge", type(L2Bridge).creationCode, constructorArgs);
     }
     
     function configureRollupPermissions(Rollup rollup) internal {

@@ -38,7 +38,7 @@ A zkEVM proving system for Facet that replaces the 7-day fraud proof window with
 | Component | Location | Description |
 |-----------|----------|-------------|
 | **Rollup.sol** | `contracts/src/` | Core dual-track rollup logic with proposal management, challenges, and proof verification |
-| **Bridge contracts** | `contracts/src/` | L1ETHBridge and L2ERC20Bridge for cross-chain asset transfers |
+| **Bridge contracts** | `contracts/src/` | L1Bridge and L2Bridge for cross-chain asset transfers |
 | **Range program** | `programs/range/` | SP1 zkVM program that proves L2 state transitions |
 | **Aggregation program** | `programs/aggregation/` | Combines multiple range proofs for efficient on-chain verification |
 | **Proposer service** | `fault-proof/src/proposer.rs` | Monitors L2, submits proposals, defends challenges with proofs |

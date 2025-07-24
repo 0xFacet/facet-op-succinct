@@ -45,7 +45,7 @@ export function DepositWizard() {
       
       try {
         const balance = await l2PublicClient.readContract({
-          address: config.l2ETHBridgeAddress,
+          address: config.l2BridgeAddress,
           abi: ERC20_ABI,
           functionName: 'balanceOf',
           args: [address]
@@ -80,7 +80,7 @@ export function DepositWizard() {
       
       // Send ETH to L1 bridge - it has a fallback that will handle the deposit
       const hash = await walletClient.sendTransaction({
-        to: config.l1ETHBridgeAddress,
+        to: config.l1BridgeAddress,
         value,
       })
       
@@ -138,7 +138,7 @@ export function DepositWizard() {
           <p className="text-lg font-semibold text-gray-900">
             {formatEther(l2Balance)} FFB
           </p>
-          <p className="text-xs text-gray-600 mt-1">ERC20: {config.l2ETHBridgeAddress.slice(0, 6)}...{config.l2ETHBridgeAddress.slice(-4)}</p>
+          <p className="text-xs text-gray-600 mt-1">ERC20: {config.l2BridgeAddress.slice(0, 6)}...{config.l2BridgeAddress.slice(-4)}</p>
         </div>
       </div>
       

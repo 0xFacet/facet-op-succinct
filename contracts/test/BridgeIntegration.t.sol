@@ -5,8 +5,8 @@ import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 
 // Core contracts
-import {L1ETHBridge} from "../src/L1ETHBridge.sol";
-import {L2ERC20Bridge} from "../src/L2ERC20Bridge.sol";
+import {L1Bridge} from "../src/L1Bridge.sol";
+import {L2Bridge} from "../src/L2Bridge.sol";
 import {Rollup} from "../src/Rollup.sol";
 
 // Dependencies
@@ -44,8 +44,8 @@ contract BridgeIntegrationTest is Test {
     receive() external payable {}
     // Contracts
 
-    L1ETHBridge public l1Bridge;
-    L2ERC20Bridge public l2Bridge;
+    L1Bridge public l1Bridge;
+    L2Bridge public l2Bridge;
     Rollup public rollup;
     MockSP1Verifier public verifier;
     L2ToL1MessagePasser public messagePasser;
@@ -114,7 +114,7 @@ contract BridgeIntegrationTest is Test {
 
         // Deploy L1 bridge (actual implementation)
         // Tests will use real merkle proofs via Go FFI
-        l1Bridge = new L1ETHBridge(Rollup(address(rollup)));
+        l1Bridge = new L1Bridge(Rollup(address(rollup)));
 
         // We'll deploy L2 components in individual tests
         // since we need to mock the L2 environment differently
@@ -168,7 +168,7 @@ contract BridgeIntegrationTest is Test {
      */
     function testDepositFlow() public {
         // Deploy L2 bridge with mock
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
 
         uint256 depositAmount = 1 ether;
@@ -188,7 +188,7 @@ contract BridgeIntegrationTest is Test {
      * @notice Test deposit via receive function
      */
     function testDepositViaReceive() public {
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
 
         uint256 depositAmount = 2 ether;
@@ -206,10 +206,10 @@ contract BridgeIntegrationTest is Test {
      * @notice Test L2 bridge access control
      */
     function testL2BridgeAccessControl() public {
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
 
         // Try to mint from non-L1 bridge address
-        vm.expectRevert(L2ERC20Bridge.UnauthorizedBridge.selector);
+        vm.expectRevert(L2Bridge.UnauthorizedBridge.selector);
         l2Bridge.finalizeDeposit(user, 1 ether);
 
         // Mint from aliased L1 bridge should work
@@ -224,11 +224,11 @@ contract BridgeIntegrationTest is Test {
      * @notice Test that L2 bridge can only be set once
      */
     function testL2BridgeSetOnce() public {
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
 
         // Try to set again
-        vm.expectRevert(L1ETHBridge.L2BridgeAlreadySet.selector);
+        vm.expectRevert(L1Bridge.L2BridgeAlreadySet.selector);
         l1Bridge.setL2Bridge(address(0x123));
     }
 
@@ -236,11 +236,11 @@ contract BridgeIntegrationTest is Test {
      * @notice Test deposit with zero amount
      */
     function testDepositZeroAmount() public {
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
 
         vm.prank(user);
-        vm.expectRevert(L1ETHBridge.InvalidDepositAmount.selector);
+        vm.expectRevert(L1Bridge.InvalidDepositAmount.selector);
         l1Bridge.initiateDeposit{value: 0}();
     }
 
@@ -248,7 +248,7 @@ contract BridgeIntegrationTest is Test {
      * @notice Test deposit with minimum viable amount (1 wei)
      */
     function testDepositMinimumAmount() public {
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
 
         // Test that 1 wei deposit works
@@ -264,7 +264,7 @@ contract BridgeIntegrationTest is Test {
      */
     function testDepositWithoutL2Bridge() public {
         vm.prank(user);
-        vm.expectRevert(L1ETHBridge.L2BridgeNotSet.selector);
+        vm.expectRevert(L1Bridge.L2BridgeNotSet.selector);
         l1Bridge.initiateDeposit{value: 1 ether}();
     }
 
@@ -276,7 +276,7 @@ contract BridgeIntegrationTest is Test {
         messagePasser = new L2ToL1MessagePasser();
         vm.etch(0x4200000000000000000000000000000000000016, address(messagePasser).code);
 
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
 
         // Give user some tokens on L2
@@ -297,7 +297,7 @@ contract BridgeIntegrationTest is Test {
         l2Bridge.initiateWithdrawal(user, withdrawAmount);
 
         // Get the withdrawal hash that the L1 bridge will calculate
-        // L1ETHBridge uses Hashing.hashWithdrawal which does keccak256(abi.encode(nonce, sender, target, value, gasLimit, data))
+        // L1Bridge uses Hashing.hashWithdrawal which does keccak256(abi.encode(nonce, sender, target, value, gasLimit, data))
         bytes32 withdrawalHash = keccak256(abi.encode(
             nonce,
             address(l2Bridge),
@@ -328,7 +328,7 @@ contract BridgeIntegrationTest is Test {
         // For this test, we'll skip checking the proven mapping since the event emission is sufficient
 
         // Try to finalize immediately (should fail due to delay)
-        vm.expectRevert(L1ETHBridge.WithdrawalDelayNotMet.selector);
+        vm.expectRevert(L1Bridge.WithdrawalDelayNotMet.selector);
         l1Bridge.finalizeWithdrawal(user, withdrawAmount, nonce);
         
         // Warp past the withdrawal delay
@@ -355,7 +355,7 @@ contract BridgeIntegrationTest is Test {
         messagePasser = new L2ToL1MessagePasser();
         vm.etch(0x4200000000000000000000000000000000000016, address(messagePasser).code);
 
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
 
         // Create a proposal but don't make it canonical
@@ -378,7 +378,7 @@ contract BridgeIntegrationTest is Test {
         Types.OutputRootProof memory outputRootProof = _generateOutputRootProof(storageRoot);
         
         // Try to prove withdrawal with non-canonical proposal
-        vm.expectRevert(L1ETHBridge.ProposalNotCanonical.selector);
+        vm.expectRevert(L1Bridge.ProposalNotCanonical.selector);
         l1Bridge.proveWithdrawal(user, 1 ether, 0, proposalId, outputRootProof, withdrawalProof);
     }
 
@@ -389,7 +389,7 @@ contract BridgeIntegrationTest is Test {
         messagePasser = new L2ToL1MessagePasser();
         vm.etch(0x4200000000000000000000000000000000000016, address(messagePasser).code);
 
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
 
         // Setup withdrawal
@@ -424,7 +424,7 @@ contract BridgeIntegrationTest is Test {
         l1Bridge.proveWithdrawal(user, 1 ether, nonce, proposalId, outputRootProof, withdrawalProof);
 
         // Second proof should fail
-        vm.expectRevert(L1ETHBridge.WithdrawalAlreadyProven.selector);
+        vm.expectRevert(L1Bridge.WithdrawalAlreadyProven.selector);
         l1Bridge.proveWithdrawal(user, 1 ether, nonce, proposalId, outputRootProof, withdrawalProof);
     }
 
@@ -436,7 +436,7 @@ contract BridgeIntegrationTest is Test {
         messagePasser = new L2ToL1MessagePasser();
         vm.etch(0x4200000000000000000000000000000000000016, address(messagePasser).code);
 
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
 
         address aliasedL1 = AddressAliasHelper.applyL1ToL2Alias(address(l1Bridge));
@@ -478,7 +478,7 @@ contract BridgeIntegrationTest is Test {
         l1Bridge.finalizeWithdrawal(user, 1 ether, nonce);
 
         // Second finalization should fail
-        vm.expectRevert(L1ETHBridge.WithdrawalAlreadyFinalized.selector);
+        vm.expectRevert(L1Bridge.WithdrawalAlreadyFinalized.selector);
         l1Bridge.finalizeWithdrawal(user, 1 ether, nonce);
     }
 
@@ -489,7 +489,7 @@ contract BridgeIntegrationTest is Test {
         messagePasser = new L2ToL1MessagePasser();
         vm.etch(0x4200000000000000000000000000000000000016, address(messagePasser).code);
 
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
 
         // Setup
@@ -523,7 +523,7 @@ contract BridgeIntegrationTest is Test {
         uint256 proposalId = _createCanonicalProposal(GENESIS_BLOCK + uint128(PROPOSAL_INTERVAL), wrongOutputRoot);
 
         // Try to prove withdrawal - should fail because the output root doesn't match the proposal
-        vm.expectRevert(L1ETHBridge.InvalidOutputRoot.selector);
+        vm.expectRevert(L1Bridge.InvalidOutputRoot.selector);
         l1Bridge.proveWithdrawal(user, 1 ether, nonce, proposalId, validOutputRootProof, withdrawalProof);
     }
 
@@ -534,7 +534,7 @@ contract BridgeIntegrationTest is Test {
         messagePasser = new L2ToL1MessagePasser();
         vm.etch(0x4200000000000000000000000000000000000016, address(messagePasser).code);
 
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
 
         // Setup
@@ -578,10 +578,10 @@ contract BridgeIntegrationTest is Test {
      * @notice Test cannot finalize unproven withdrawal
      */
     function testFinalizeUnprovenWithdrawal() public {
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
 
-        vm.expectRevert(L1ETHBridge.WithdrawalNotProven.selector);
+        vm.expectRevert(L1Bridge.WithdrawalNotProven.selector);
         l1Bridge.finalizeWithdrawal(user, 1 ether, 0);
     }
 
@@ -596,7 +596,7 @@ contract BridgeIntegrationTest is Test {
         messagePasser = new L2ToL1MessagePasser();
         vm.etch(0x4200000000000000000000000000000000000016, address(messagePasser).code);
 
-        l2Bridge = new L2ERC20Bridge("L2ETH", "L2ETH", address(l1Bridge));
+        l2Bridge = new L2Bridge("L2ETH", "L2ETH", address(l1Bridge));
         l1Bridge.setL2Bridge(address(l2Bridge));
 
         address aliasedL1 = AddressAliasHelper.applyL1ToL2Alias(address(l1Bridge));
@@ -648,19 +648,19 @@ contract BridgeIntegrationTest is Test {
         assertEq(bridgeBalanceBefore - address(l1Bridge).balance, 1 ether);
 
         // Verify the withdrawal is now finalized and can't be done again
-        vm.expectRevert(L1ETHBridge.WithdrawalAlreadyFinalized.selector);
+        vm.expectRevert(L1Bridge.WithdrawalAlreadyFinalized.selector);
         l1Bridge.finalizeWithdrawal(address(reentrant), 1 ether, nonce);
     }
 }
 
 contract ReentrantReceiver {
-    L1ETHBridge public bridge;
+    L1Bridge public bridge;
     address public attackTo;
     uint256 public attackAmount;
     uint256 public attackNonce;
     bool public attacking;
 
-    constructor(L1ETHBridge _bridge) {
+    constructor(L1Bridge _bridge) {
         bridge = _bridge;
     }
 

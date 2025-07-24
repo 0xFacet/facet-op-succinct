@@ -38,7 +38,7 @@ const config = {
   privateKey: process.env.PRIVATE_KEY as `0x${string}` || '0x...',
   
   // Contract addresses (replace with actual deployments)
-  l1ETHBridgeAddress: process.env.L1_ETH_BRIDGE_ADDRESS as Address || '0x...',
+  l1BridgeAddress: process.env.L1_BRIDGE_ADDRESS as Address || '0x...',
   rollupAddress: process.env.ROLLUP_ADDRESS as Address || '0x...',
   
   // RPC endpoints
@@ -94,7 +94,7 @@ async function main() {
     //   to: withdrawal.to,
     //   amount: withdrawal.amount,
     //   nonce: withdrawal.nonce,
-    //   bridgeAddress: config.l1ETHBridgeAddress,
+    //   bridgeAddress: config.l1BridgeAddress,
     // });
 
     // For this example, we'll simulate the status
@@ -163,7 +163,7 @@ async function main() {
       //   proposalId,
       //   outputRoot: keccak256(encodeAbiParameters(...)), // Computed from outputRootProof
       //   l2BlockNumber: withdrawal.l2BlockNumber,
-      //   bridgeAddress: config.l1ETHBridgeAddress,
+      //   bridgeAddress: config.l1BridgeAddress,
       //   l2Client,
       // });
 
@@ -175,7 +175,7 @@ async function main() {
         proposalId,
         outputRootProof,
         withdrawalProof: ['0x...'] as Hash[], // Merkle proof from L2 state
-        bridgeAddress: config.l1ETHBridgeAddress,
+        bridgeAddress: config.l1BridgeAddress,
       };
 
       console.log('Proof parameters ready\n');
@@ -214,7 +214,7 @@ async function main() {
       //   to: withdrawal.to,
       //   amount: withdrawal.amount,
       //   nonce: withdrawal.nonce,
-      //   bridgeAddress: config.l1ETHBridgeAddress,
+      //   bridgeAddress: config.l1BridgeAddress,
       // });
 
       const hash = '0x...' as Hash; // Simulated transaction hash

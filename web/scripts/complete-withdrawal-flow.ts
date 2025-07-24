@@ -29,7 +29,7 @@ const config = {
   privateKey: process.env.PRIVATE_KEY as `0x${string}` || '0x...',
   
   // L1 contract addresses (get these from your deployment)
-  l1ETHBridgeAddress: '0x...' as Address,
+  l1BridgeAddress: '0x...' as Address,
   rollupAddress: '0x...' as Address,
   
   // L2 contract addresses
@@ -163,7 +163,7 @@ const ROLLUP_ABI = [
   }
 ] as const;
 
-// Helper to calculate withdrawal hash (matching L1ETHBridge._hashWithdrawal)
+// Helper to calculate withdrawal hash (matching L1Bridge._hashWithdrawal)
 function calculateWithdrawalHash(
   to: Address,
   amount: bigint,
@@ -247,7 +247,7 @@ async function main() {
 
   // Get L2 bridge address from L1 bridge
   const l2BridgeAddress = await l1Client.readContract({
-    address: config.l1ETHBridgeAddress,
+    address: config.l1BridgeAddress,
     abi: L1_BRIDGE_ABI,
     functionName: 'l2Bridge'
   });
@@ -361,7 +361,7 @@ async function main() {
     withdrawalAmount,
     withdrawalNonce,
     l2BridgeAddress,
-    config.l1ETHBridgeAddress
+    config.l1BridgeAddress
   );
   
   const storageKey = keccak256(
@@ -445,7 +445,7 @@ async function main() {
   // withdrawalHash already calculated above, reuse it
 
   const provenInfo = await l1Client.readContract({
-    address: config.l1ETHBridgeAddress,
+    address: config.l1BridgeAddress,
     abi: L1_BRIDGE_ABI,
     functionName: 'proven',
     args: [withdrawalHash]
@@ -460,7 +460,7 @@ async function main() {
     console.log('Submitting withdrawal proof...');
     
     const proveTxHash = await l1WalletClient.writeContract({
-      address: config.l1ETHBridgeAddress,
+      address: config.l1BridgeAddress,
       abi: L1_BRIDGE_ABI,
       functionName: 'proveWithdrawal',
       args: [
@@ -491,7 +491,7 @@ async function main() {
 
   // Check if already finalized
   const isFinalized = await l1Client.readContract({
-    address: config.l1ETHBridgeAddress,
+    address: config.l1BridgeAddress,
     abi: L1_BRIDGE_ABI,
     functionName: 'finalized',
     args: [withdrawalHash]
@@ -504,7 +504,7 @@ async function main() {
 
   // Check withdrawal delay
   const finalProvenInfo = await l1Client.readContract({
-    address: config.l1ETHBridgeAddress,
+    address: config.l1BridgeAddress,
     abi: L1_BRIDGE_ABI,
     functionName: 'proven',
     args: [withdrawalHash]
@@ -533,7 +533,7 @@ async function main() {
   console.log('Finalizing withdrawal...');
   
   const finalizeTxHash = await l1WalletClient.writeContract({
-    address: config.l1ETHBridgeAddress,
+    address: config.l1BridgeAddress,
     abi: L1_BRIDGE_ABI,
     functionName: 'finalizeWithdrawal',
     args: [recipient, withdrawalAmount, withdrawalNonce]
