@@ -407,15 +407,10 @@ contract Rollup is Ownable, ReentrancyGuard {
     /// @param l1BlockNumber L1 block number
     /// @return l1BlockHash Block hash (reverts if too old and not checkpointed)
     /// @dev Automatically caches recent block hashes for gas efficiency
-    function getL1BlockHash(uint256 l1BlockNumber) internal returns (bytes32 l1BlockHash) {
+    function getL1BlockHash(uint256 l1BlockNumber) internal view returns (bytes32 l1BlockHash) {
         l1BlockHash = l1BlockHashes[l1BlockNumber];
         if (l1BlockHash == bytes32(0)) {
-            // Only available for last 256 blocks
-            l1BlockHash = blockhash(l1BlockNumber);
-            if (l1BlockHash == bytes32(0)) {
-                revert L1BlockHashNotCheckpointed();
-            }
-            l1BlockHashes[l1BlockNumber] = l1BlockHash;
+            revert L1BlockHashNotCheckpointed();
         }
     }
 

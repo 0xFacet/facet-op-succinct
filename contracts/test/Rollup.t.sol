@@ -145,6 +145,7 @@ contract RollupTest is Test {
         rollup.challengeProposal{value: CHALLENGER_BOND}(proposalId);
         
         // Prove it
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveProposal(
             proposalId,
@@ -275,6 +276,7 @@ contract RollupTest is Test {
         );
         
         // Prove it even though unchallenged
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveProposal(proposalId, block.number - 1, hex"00");
         
@@ -294,6 +296,7 @@ contract RollupTest is Test {
         vm.prank(challenger);
         rollup.challengeProposal{value: CHALLENGER_BOND}(proposalId);
         
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveProposal(proposalId, block.number - 1, hex"00");
         
@@ -402,6 +405,7 @@ contract RollupTest is Test {
         verifier.setShouldVerify(false);
         
         // Try to prove - should revert
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert("Mock verification failed");
         rollup.proveProposal(proposalId, block.number - 1, hex"00");
@@ -445,6 +449,7 @@ contract RollupTest is Test {
         rollup.challengeProposal{value: CHALLENGER_BOND}(proposalId);
         
         // Third party proves
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(thirdParty);
         rollup.proveProposal(proposalId, block.number - 1, hex"00");
         
@@ -482,6 +487,7 @@ contract RollupTest is Test {
         rollup.challengeProposal{value: CHALLENGER_BOND}(0);
         
         // Try to prove genesis proposal
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.GameNotOver.selector);
         rollup.proveProposal(0, block.number - 1, hex"00");
@@ -711,6 +717,7 @@ contract RollupTest is Test {
         assertEq(rollup.needsDefense(id), true);
         
         // After proof, no longer needs defense
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveProposal(id, block.number - 1, hex"00");
         assertEq(rollup.needsDefense(id), false);
@@ -888,6 +895,7 @@ contract RollupTest is Test {
             1
         );
         
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveProposal(id2, block.number - 1, hex"00");
         assertTrue(rollup.gameOver(id2));
@@ -1078,6 +1086,7 @@ contract RollupTest is Test {
         rollup.challengeProposal{value: CHALLENGER_BOND}(id);
         
         // Proposer proves their own proposal
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(proposer);
         rollup.proveProposal(id, block.number - 1, hex"00");
         
@@ -1119,6 +1128,7 @@ contract RollupTest is Test {
         );
         
         // Prove the proposal
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveProposal(id, block.number - 1, hex"00");
         
@@ -1326,6 +1336,7 @@ contract RollupTest is Test {
         uint256 l1BlockNum = block.number - 1;
         
         // Call proveBlock
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(l2BlockNum, root, l1BlockNum, hex"00");
         
@@ -1367,6 +1378,7 @@ contract RollupTest is Test {
         rollup.resolveProposal(id1);
         
         // Now try to prove a block that doesn't build on the anchor
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.BadCadence.selector);
         rollup.proveBlock(
@@ -1377,6 +1389,7 @@ contract RollupTest is Test {
         );
         
         // Proving the correct next block should work
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(
             1200, // Correct next block
@@ -1393,6 +1406,7 @@ contract RollupTest is Test {
         verifier.setShouldVerify(false);
         
         // Try to prove block - should revert
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert("Mock verification failed");
         rollup.proveBlock(
@@ -1492,6 +1506,7 @@ contract RollupTest is Test {
         rollup.challengeProposal{value: CHALLENGER_BOND}(id2);
         
         // Prove both proposals before resolving either
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveProposal(id1, block.number - 1, hex"00");
         
@@ -1556,6 +1571,7 @@ contract RollupTest is Test {
         address prover2 = address(0x999);
         
         // First prover proves the block
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(
             1100,
@@ -1565,6 +1581,7 @@ contract RollupTest is Test {
         );
         
         // Second prover tries to prove the same block - should fail because anchor moved
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover2);
         vm.expectRevert(Rollup.ProposingBackwards.selector);
         rollup.proveBlock(
@@ -1575,6 +1592,7 @@ contract RollupTest is Test {
         );
         
         // Even with different root, should fail
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover2);
         vm.expectRevert(Rollup.ProposingBackwards.selector);
         rollup.proveBlock(
@@ -1589,6 +1607,7 @@ contract RollupTest is Test {
         // Test that proveBlock advances the anchor immediately
         
         // Prove blocks in sequence
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         assertEq(rollup.anchorL2BlockNumber(), 1100);
@@ -1597,6 +1616,7 @@ contract RollupTest is Test {
         rollup.proveBlock(1200, bytes32(uint256(200)), block.number - 1, hex"00");
         assertEq(rollup.anchorL2BlockNumber(), 1200);
         
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1300, bytes32(uint256(300)), block.number - 1, hex"00");
         assertEq(rollup.anchorL2BlockNumber(), 1300);
@@ -1628,6 +1648,7 @@ contract RollupTest is Test {
         }
         
         // Submit validity proof for block 1100 with correct root
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -1656,6 +1677,7 @@ contract RollupTest is Test {
         rollup.challengeProposal{value: CHALLENGER_BOND}(proposalId);
         
         // Submit validity proof for block 1100
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -1680,11 +1702,13 @@ contract RollupTest is Test {
         );
         
         // Prove it with ZK proof
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveProposal(proposalId, block.number - 1, hex"00");
         
         // Submit validity proof with correct root
         address validityProver = address(0x999);
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(validityProver);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -1702,6 +1726,7 @@ contract RollupTest is Test {
     
     function testFaultProofCanReferenceValidityProofParent() public {
         // Submit validity proof for block 1100
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         
@@ -1735,6 +1760,7 @@ contract RollupTest is Test {
         rollup.resolveProposal(faultProposalId);
         
         // Submit validity proof for block 1200 with fault proof as parent
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1200, bytes32(uint256(200)), block.number - 1, hex"00");
         
@@ -1757,6 +1783,7 @@ contract RollupTest is Test {
         );
         
         // Submit validity proof for same block
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -1767,6 +1794,7 @@ contract RollupTest is Test {
         assertNotEq(validityId, faultId);
         
         // Try to prove fault proof - should fail because game is over
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.GameNotOver.selector);
         rollup.proveProposal(faultId, block.number - 1, hex"00");
@@ -1793,6 +1821,7 @@ contract RollupTest is Test {
         
         // Try to submit validity proof for block 1100
         // This will fail because the block is already anchored
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.ProposingBackwards.selector);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
@@ -1805,6 +1834,7 @@ contract RollupTest is Test {
     
     function testNoProposerBondForValidityProofs() public {
         // Submit validity proof (proposer = address(0))
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         
@@ -1851,11 +1881,13 @@ contract RollupTest is Test {
             1100,
             0
         );
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveProposal(idC, block.number - 1, hex"00");
         
         // Submit validity proof for block 1100
         address validityProver = address(0x999);
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(validityProver);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -1882,17 +1914,20 @@ contract RollupTest is Test {
         assertEq(rollup.anchorL2BlockNumber(), 1000);
         
         // Submit validity proof for block 1100
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         assertEq(rollup.anchorL2BlockNumber(), 1100);
         
         // For simplicity, just continue with validity proofs
         // The test name suggests mixed proposals, but the key point is anchor advancement
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1200, bytes32(uint256(200)), block.number - 1, hex"00");
         assertEq(rollup.anchorL2BlockNumber(), 1200);
         
         // Submit validity proof for block 1300
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1300, bytes32(uint256(300)), block.number - 1, hex"00");
         assertEq(rollup.anchorL2BlockNumber(), 1300);
@@ -1905,6 +1940,7 @@ contract RollupTest is Test {
         assertEq(rollup.anchorL2BlockNumber(), 1000);
         
         // Can't submit validity proof for block 1300 (creates gap)
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.BadCadence.selector);
         rollup.proveBlock(1300, bytes32(uint256(300)), block.number - 1, hex"00");
@@ -1914,6 +1950,7 @@ contract RollupTest is Test {
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         assertEq(rollup.anchorL2BlockNumber(), 1100);
         
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1200, bytes32(uint256(200)), block.number - 1, hex"00");
         assertEq(rollup.anchorL2BlockNumber(), 1200);
@@ -1935,6 +1972,7 @@ contract RollupTest is Test {
         );
         
         // In same block, submit validity proof
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -1957,10 +1995,12 @@ contract RollupTest is Test {
         );
         
         // Submit validity proof for same block
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
         // Try to prove the original proposal - should fail as game is over
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.GameNotOver.selector);
         rollup.proveProposal(proposalId, block.number - 1, hex"00");
@@ -1978,6 +2018,7 @@ contract RollupTest is Test {
         assertFalse(rollup.isWhitelistedProposer(nonWhitelisted));
         
         // Submit validity proof with correct proof - should succeed
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(nonWhitelisted);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         
@@ -1988,6 +2029,7 @@ contract RollupTest is Test {
     
     function testProveBlockMustBuildOnAnchor() public {
         // Try to submit validity proof that skips blocks
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.BadCadence.selector);
         rollup.proveBlock(1200, bytes32(uint256(200)), block.number - 1, hex"00");
@@ -1997,6 +2039,7 @@ contract RollupTest is Test {
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         
         // Now can submit next block
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1200, bytes32(uint256(200)), block.number - 1, hex"00");
     }
@@ -2015,6 +2058,7 @@ contract RollupTest is Test {
         rollup.resolveProposal(id);
         
         // Try to submit validity proof for same block - should fail
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.ProposingBackwards.selector);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
@@ -2055,6 +2099,7 @@ contract RollupTest is Test {
         
         // Now try to submit validity proof for block 1100 with different root
         // This will fail because block 1100 is already part of the anchor chain
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.ProposingBackwards.selector);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
@@ -2072,6 +2117,7 @@ contract RollupTest is Test {
     
     function testZeroAddressProposerHandling() public {
         // Submit validity proof (proposer = address(0))
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         
@@ -2117,6 +2163,7 @@ contract RollupTest is Test {
         
         // Try to submit a validity proof for block 1100
         // This should work because proveBlock builds on the current anchor
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -2156,6 +2203,7 @@ contract RollupTest is Test {
         
         // Try to prove block 1200 (skipping the unresolved 1100)
         // This should fail because proveBlock enforces linear progression from anchor
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.BadCadence.selector);
         rollup.proveBlock(1200, bytes32(uint256(200)), block.number - 1, hex"00");
@@ -2165,6 +2213,7 @@ contract RollupTest is Test {
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
         // Now can prove 1200
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1200, bytes32(uint256(200)), block.number - 1, hex"00");
         
@@ -2184,6 +2233,7 @@ contract RollupTest is Test {
         rollup.challengeProposal{value: CHALLENGER_BOND}(proposalId);
         
         // Before the challenge deadline, submit a validity proof
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -2192,6 +2242,7 @@ contract RollupTest is Test {
         // - But there's already a canonical proposal for this block
         
         // Try to prove the challenged proposal - should fail because game is over
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.GameNotOver.selector);
         rollup.proveProposal(proposalId, block.number - 1, hex"00");
@@ -2247,6 +2298,7 @@ contract RollupTest is Test {
         assertFalse(rollup.gameOver(id2));
         
         // Use validity proof for the same block
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -2267,6 +2319,7 @@ contract RollupTest is Test {
         // Test gap 3: Cannot challenge a validity proof proposal
         
         // Submit validity proof
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         
@@ -2286,15 +2339,18 @@ contract RollupTest is Test {
         // Test gap 4: Cannot submit duplicate validity proofs
         
         // First validity proof succeeds
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         
         // Second validity proof for same height should revert
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.ProposingBackwards.selector);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         
         // Even with different root
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.ProposingBackwards.selector);
         rollup.proveBlock(1100, bytes32(uint256(200)), block.number - 1, hex"00");
@@ -2315,6 +2371,7 @@ contract RollupTest is Test {
         assertFalse(rollup.gameOver(proposalId));
         
         // Submit validity proof for same block
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -2334,6 +2391,7 @@ contract RollupTest is Test {
         // Test gap 6: Verify state changes after proveBlock (events are tested elsewhere)
         
         // Execute proveBlock
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(100)), block.number - 1, hex"00");
         
@@ -2358,6 +2416,7 @@ contract RollupTest is Test {
         // Test that proveBlock also enforces cadence requirements via _createProposal
         
         // Try to prove a block that's not on the interval
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.BadCadence.selector);
         rollup.proveBlock(
@@ -2368,6 +2427,7 @@ contract RollupTest is Test {
         );
         
         // Try to prove a block that skips ahead
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.BadCadence.selector);
         rollup.proveBlock(
@@ -2408,6 +2468,7 @@ contract RollupTest is Test {
         );
         
         // Submit validity proof on 1100 (creates canonical and invalidates P1)
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -2453,6 +2514,7 @@ contract RollupTest is Test {
         rollup.challengeProposal{value: CHALLENGER_BOND}(p2);
         
         // Submit validity proof on 1100
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -2490,6 +2552,7 @@ contract RollupTest is Test {
         // Try to prove with uncheckpointed old block (should revert)
         // This block is also >256 blocks old but wasn't checkpointed
         uint256 uncheckpointedOldBlock = 440;
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         vm.expectRevert(Rollup.L1BlockHashNotCheckpointed.selector);
         rollup.proveBlock(1200, bytes32(uint256(200)), uncheckpointedOldBlock, hex"00");
@@ -2512,6 +2575,7 @@ contract RollupTest is Test {
         );
         
         // Submit validity proof by another user
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -2548,6 +2612,7 @@ contract RollupTest is Test {
         );
         
         // Anchor the correct root with a validity proof for block 1100
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -2600,6 +2665,7 @@ contract RollupTest is Test {
         vm.roll(400);
         
         // Now prove should succeed with checkpointed block
+        // Note: We already checkpointed block 99 earlier, so no need to checkpoint again
         vm.prank(prover);
         rollup.proveProposal(proposalId, 99, hex"00");
         
@@ -2618,6 +2684,7 @@ contract RollupTest is Test {
         );
         
         // Then create a validity proof as canonical (proposer = address(0))
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -2650,6 +2717,7 @@ contract RollupTest is Test {
         );
         
         // Prove the fault proposal
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveProposal(faultId, block.number - 1, hex"00");
         
@@ -2657,6 +2725,7 @@ contract RollupTest is Test {
         address canonicalProver = address(0x999);
         
         // Then create a validity proof as canonical (different root) with different prover
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(canonicalProver);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -2701,6 +2770,7 @@ contract RollupTest is Test {
         );
         
         // Submit a ZK proof for block 1100 with correct root
+        rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
         rollup.proveBlock(1100, bytes32(uint256(999)), block.number - 1, hex"00");
         
@@ -2775,6 +2845,7 @@ contract RollupTest is Test {
         assertEq(storedHash, blockhash(149));
         
         // Prove using checkpointed block
+        rollup.checkpointL1BlockHash(149);
         vm.prank(prover);
         rollup.proveProposal(proposalId, 149, hex"00");
         
