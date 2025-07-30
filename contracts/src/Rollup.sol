@@ -335,7 +335,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         Proposal storage p = proposals[id];
         
         bytes32 parentRoot = proposals[p.parentIndex].rootClaim;
-        bytes32 l1BlockHash = getL1BlockHash(l1BlockNumber);
+        bytes32 l1BlockHash = getCheckpointedL1BlockHash(l1BlockNumber);
         AggregationOutputs memory pub = AggregationOutputs({
             l1Head: l1BlockHash,
             l2PreRoot: parentRoot,
@@ -361,12 +361,12 @@ contract Rollup is Ownable, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     modifier onlyIfGameOver(uint256 proposalId) {
-        if (!gameOver(proposalId)) revert GameOver();
+        if (!gameOver(proposalId)) revert GameNotOver();
         _;
     }
     
     modifier onlyIfGameNotOver(uint256 proposalId) {
-        if (gameOver(proposalId)) revert GameNotOver();
+        if (gameOver(proposalId)) revert GameOver();
         _;
     }
 
@@ -406,8 +406,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     /// @notice Get L1 block hash from checkpoint or EVM history
     /// @param l1BlockNumber L1 block number
     /// @return l1BlockHash Block hash (reverts if too old and not checkpointed)
-    /// @dev Automatically caches recent block hashes for gas efficiency
-    function getL1BlockHash(uint256 l1BlockNumber) internal view returns (bytes32 l1BlockHash) {
+    function getCheckpointedL1BlockHash(uint256 l1BlockNumber) internal view returns (bytes32 l1BlockHash) {
         l1BlockHash = l1BlockHashes[l1BlockNumber];
         if (l1BlockHash == bytes32(0)) {
             revert L1BlockHashNotCheckpointed();
@@ -449,7 +448,6 @@ contract Rollup is Ownable, ReentrancyGuard {
         }
         
         if (p.resolutionStatus == ResolutionStatus.DEFENDER_WINS) {
-            // Mark as canonical if not already set by validity proof
             _trySetCanonical(p.l2BlockNumber, id);
             
             // Advance anchor only if this directly extends it

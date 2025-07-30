@@ -483,13 +483,13 @@ contract RollupTest is Test {
     function testCannotInteractWithGenesisProposal() public {
         // Try to challenge genesis proposal
         vm.prank(challenger);
-        vm.expectRevert(Rollup.GameNotOver.selector);
+        vm.expectRevert(Rollup.GameOver.selector);
         rollup.challengeProposal{value: CHALLENGER_BOND}(0);
         
         // Try to prove genesis proposal
         rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
-        vm.expectRevert(Rollup.GameNotOver.selector);
+        vm.expectRevert(Rollup.GameOver.selector);
         rollup.proveProposal(0, block.number - 1, hex"00");
         
         // Try to resolve genesis proposal (already resolved)
@@ -1133,7 +1133,7 @@ contract RollupTest is Test {
         rollup.proveProposal(id, block.number - 1, hex"00");
         
         // Challenge should fail because game is over
-        vm.expectRevert(Rollup.GameNotOver.selector);
+        vm.expectRevert(Rollup.GameOver.selector);
         vm.prank(challenger);
         rollup.challengeProposal{value: CHALLENGER_BOND}(id);
     }
@@ -1796,7 +1796,7 @@ contract RollupTest is Test {
         // Try to prove fault proof - should fail because game is over
         rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
-        vm.expectRevert(Rollup.GameNotOver.selector);
+        vm.expectRevert(Rollup.GameOver.selector);
         rollup.proveProposal(faultId, block.number - 1, hex"00");
         
         // Canonical should still be validity proof
@@ -2002,7 +2002,7 @@ contract RollupTest is Test {
         // Try to prove the original proposal - should fail as game is over
         rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
-        vm.expectRevert(Rollup.GameNotOver.selector);
+        vm.expectRevert(Rollup.GameOver.selector);
         rollup.proveProposal(proposalId, block.number - 1, hex"00");
         
         // Resolve - still invalidated
@@ -2244,7 +2244,7 @@ contract RollupTest is Test {
         // Try to prove the challenged proposal - should fail because game is over
         rollup.checkpointL1BlockHash(block.number - 1);
         vm.prank(prover);
-        vm.expectRevert(Rollup.GameNotOver.selector);
+        vm.expectRevert(Rollup.GameOver.selector);
         rollup.proveProposal(proposalId, block.number - 1, hex"00");
         
         // Resolve the challenged proposal
@@ -2327,7 +2327,7 @@ contract RollupTest is Test {
         
         // Try to challenge it - should fail with GameNotOver
         vm.prank(challenger);
-        vm.expectRevert(Rollup.GameNotOver.selector);
+        vm.expectRevert(Rollup.GameOver.selector);
         rollup.challengeProposal{value: CHALLENGER_BOND}(validityProposalId);
         
         // Also verify the proposal has no proposer (address(0))
