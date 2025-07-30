@@ -2,7 +2,6 @@
 pragma solidity 0.8.24;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AddressAliasHelper} from "optimism/packages/contracts-bedrock/src/vendor/AddressAliasHelper.sol";
 
 interface IL2ToL1MessagePasser {
@@ -21,6 +20,7 @@ contract L2Bridge is ERC20 {
 
     error UnauthorizedBridge();
     error InvalidWithdrawalAmount();
+    error InvalidL1Bridge();
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
@@ -43,6 +43,7 @@ contract L2Bridge is ERC20 {
     }
 
     constructor(string memory name_, string memory symbol_, address _l1Bridge) ERC20(name_, symbol_) {
+        if (_l1Bridge == address(0)) revert InvalidL1Bridge();
         l1Bridge = _l1Bridge;
     }
 

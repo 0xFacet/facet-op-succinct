@@ -106,7 +106,7 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    // storage key slot used by the Bedrock L2ToL1MessagePasser contract
+    // storage key slot used by the L2ToL1MessagePasser contract
     bytes32 internal constant MESSAGE_PASSER_SLOT = bytes32(uint256(0));
 
     /*//////////////////////////////////////////////////////////////
@@ -188,7 +188,7 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
 
         bytes memory data = abi.encodeWithSelector(L2Bridge.finalizeDeposit.selector, recipient, amount);
 
-        LibFacet.sendFacetTransaction({to: l2Bridge, gasLimit: 1_000_000, data: data});
+        LibFacet.sendFacetTransaction({to: l2Bridge, gasLimit: 500_000, data: data});
 
         emit DepositInitiated(recipient, recipient, amount);
     }
