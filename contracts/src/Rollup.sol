@@ -109,7 +109,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         uint32  parentIndex;
         uint32  deadline;
 
-        uint64  resolvedAt;
+        uint32  resolvedAt;
         ProposalStatus proposalStatus;
         ResolutionStatus resolutionStatus;
         address challenger;
@@ -471,7 +471,7 @@ contract Rollup is Ownable, ReentrancyGuard {
         }
         
         p.proposalStatus = ProposalStatus.Resolved;
-        p.resolvedAt = (block.timestamp).toUint64();
+        p.resolvedAt = (block.timestamp).toUint32();
         emit ProposalResolved(id, p.resolutionStatus);
         emit ProposalClosed(id);
     }
