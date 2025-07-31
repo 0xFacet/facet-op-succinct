@@ -603,7 +603,7 @@ contract Rollup is Ownable, ReentrancyGuard {
     /// @notice Get current anchor root and block number
     /// @return root Output root
     /// @return blockNumber L2 block number
-    function getAnchorRoot() public view returns (bytes32, uint256) {
+    function getAnchorRoot() external view returns (bytes32, uint256) {
         return (anchorRoot(), anchorL2BlockNumber);
     }
 
