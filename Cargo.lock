@@ -4916,7 +4916,7 @@ dependencies = [
 [[package]]
 name = "kona-cli"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "clap",
  "libc",
@@ -4928,7 +4928,7 @@ dependencies = [
 [[package]]
 name = "kona-client"
 version = "1.0.1"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -4967,7 +4967,7 @@ dependencies = [
 [[package]]
 name = "kona-derive"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -4988,7 +4988,7 @@ dependencies = [
 [[package]]
 name = "kona-driver"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-consensus",
  "alloy-evm",
@@ -5009,7 +5009,7 @@ dependencies = [
 [[package]]
 name = "kona-engine"
 version = "0.1.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5045,7 +5045,7 @@ dependencies = [
 [[package]]
 name = "kona-executor"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5069,7 +5069,7 @@ dependencies = [
 [[package]]
 name = "kona-genesis"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5090,7 +5090,7 @@ dependencies = [
 [[package]]
 name = "kona-hardforks"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-eips 0.15.11",
  "alloy-primitives",
@@ -5101,7 +5101,7 @@ dependencies = [
 [[package]]
 name = "kona-host"
 version = "1.0.1"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5149,7 +5149,7 @@ dependencies = [
 [[package]]
 name = "kona-interop"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5170,12 +5170,12 @@ dependencies = [
 [[package]]
 name = "kona-macros"
 version = "0.1.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 
 [[package]]
 name = "kona-mpt"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-primitives",
  "alloy-rlp",
@@ -5187,7 +5187,7 @@ dependencies = [
 [[package]]
 name = "kona-p2p"
 version = "0.1.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-consensus",
  "alloy-primitives",
@@ -5220,7 +5220,7 @@ dependencies = [
 [[package]]
 name = "kona-preimage"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-primitives",
  "async-channel",
@@ -5234,7 +5234,7 @@ dependencies = [
 [[package]]
 name = "kona-proof"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5270,7 +5270,7 @@ dependencies = [
 [[package]]
 name = "kona-proof-interop"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5302,7 +5302,7 @@ dependencies = [
 [[package]]
 name = "kona-protocol"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloc-no-stdlib",
  "alloy-consensus",
@@ -5317,6 +5317,9 @@ dependencies = [
  "derive_more 2.0.1",
  "kona-genesis",
  "miniz_oxide",
+ "num-bigint 0.4.6",
+ "num-rational",
+ "num-traits",
  "op-alloy-consensus",
  "op-alloy-rpc-types",
  "op-alloy-rpc-types-engine",
@@ -5331,7 +5334,7 @@ dependencies = [
 [[package]]
 name = "kona-providers-alloy"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5360,7 +5363,7 @@ dependencies = [
 [[package]]
 name = "kona-registry"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-chains",
  "alloy-primitives",
@@ -5374,7 +5377,7 @@ dependencies = [
 [[package]]
 name = "kona-rpc"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-eips 0.15.11",
  "alloy-primitives",
@@ -5399,7 +5402,7 @@ dependencies = [
 [[package]]
 name = "kona-serde"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "alloy-primitives",
  "serde",
@@ -5409,7 +5412,7 @@ dependencies = [
 [[package]]
 name = "kona-std-fpvm"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "async-trait",
  "buddy_system_allocator",
@@ -5421,7 +5424,7 @@ dependencies = [
 [[package]]
 name = "kona-std-fpvm-proc"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
 dependencies = [
  "cfg-if",
  "kona-std-fpvm",
@@ -6774,8 +6777,7 @@ checksum = "a4895175b425cb1f87721b59f0f286c2092bd4af812243672510e1ac53e2e0ad"
 [[package]]
 name = "op-alloy-consensus"
 version = "0.15.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "375b501fad264f16781b608252b1b14c627359cc90cc09e80f6cbdac03fd8f07"
+source = "git+https://github.com/0xFacet/facet-op-alloy?tag=v0.15.4-facet#14a7313f8db7ac86a67b8ca9ac0e4bfba7d6699b"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -6790,8 +6792,7 @@ dependencies = [
 [[package]]
 name = "op-alloy-network"
 version = "0.15.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e65a776c7783650a4ffdf15bdf0526f4b8bdbe00b26df5aeeb1aa2939c6554f"
+source = "git+https://github.com/0xFacet/facet-op-alloy?tag=v0.15.4-facet#14a7313f8db7ac86a67b8ca9ac0e4bfba7d6699b"
 dependencies = [
  "alloy-consensus",
  "alloy-network",
@@ -6805,8 +6806,7 @@ dependencies = [
 [[package]]
 name = "op-alloy-provider"
 version = "0.15.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e25ed2629159706da365988e278515740ee993f6e5b07531148cf88ea5a6ee8d"
+source = "git+https://github.com/0xFacet/facet-op-alloy?tag=v0.15.4-facet#14a7313f8db7ac86a67b8ca9ac0e4bfba7d6699b"
 dependencies = [
  "alloy-network",
  "alloy-primitives",
@@ -6820,8 +6820,7 @@ dependencies = [
 [[package]]
 name = "op-alloy-rpc-jsonrpsee"
 version = "0.15.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9ce30de9f0e222c863ac8bd97f6f9a7eb6f7fb74309e2fbb6b5aca0035a66fb"
+source = "git+https://github.com/0xFacet/facet-op-alloy?tag=v0.15.4-facet#14a7313f8db7ac86a67b8ca9ac0e4bfba7d6699b"
 dependencies = [
  "alloy-primitives",
  "jsonrpsee 0.24.9",
@@ -6830,8 +6829,7 @@ dependencies = [
 [[package]]
 name = "op-alloy-rpc-types"
 version = "0.15.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1436a5d45b7620bbba236201236ef644abd943258b6349dc5e5a147d65a1fac4"
+source = "git+https://github.com/0xFacet/facet-op-alloy?tag=v0.15.4-facet#14a7313f8db7ac86a67b8ca9ac0e4bfba7d6699b"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -6848,8 +6846,7 @@ dependencies = [
 [[package]]
 name = "op-alloy-rpc-types-engine"
 version = "0.15.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b9767e25626d237857803577081a27082b2fd367934953e1144af433b1f4e07"
+source = "git+https://github.com/0xFacet/facet-op-alloy?tag=v0.15.4-facet#14a7313f8db7ac86a67b8ca9ac0e4bfba7d6699b"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -6868,7 +6865,7 @@ dependencies = [
 [[package]]
 name = "op-revm"
 version = "3.0.2"
-source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.1.0-facet#b1a61e33e9984d8f557c143b6cc0f7f05750a454"
 dependencies = [
  "auto_impl",
  "once_cell",
@@ -8642,7 +8639,7 @@ checksum = "95325155c684b1c89f7765e30bc1c42e4a6da51ca513615660cb8a62ef9a88e3"
 [[package]]
 name = "revm"
 version = "22.0.1"
-source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.1.0-facet#b1a61e33e9984d8f557c143b6cc0f7f05750a454"
 dependencies = [
  "revm-bytecode",
  "revm-context",
@@ -8660,7 +8657,7 @@ dependencies = [
 [[package]]
 name = "revm-bytecode"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.1.0-facet#b1a61e33e9984d8f557c143b6cc0f7f05750a454"
 dependencies = [
  "bitvec",
  "phf",
@@ -8671,7 +8668,7 @@ dependencies = [
 [[package]]
 name = "revm-context"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.1.0-facet#b1a61e33e9984d8f557c143b6cc0f7f05750a454"
 dependencies = [
  "cfg-if",
  "derive-where",
@@ -8686,7 +8683,7 @@ dependencies = [
 [[package]]
 name = "revm-context-interface"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.1.0-facet#b1a61e33e9984d8f557c143b6cc0f7f05750a454"
 dependencies = [
  "alloy-eip2930",
  "alloy-eip7702",
@@ -8700,7 +8697,7 @@ dependencies = [
 [[package]]
 name = "revm-database"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.1.0-facet#b1a61e33e9984d8f557c143b6cc0f7f05750a454"
 dependencies = [
  "alloy-eips 0.14.0",
  "revm-bytecode",
@@ -8713,7 +8710,7 @@ dependencies = [
 [[package]]
 name = "revm-database-interface"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.1.0-facet#b1a61e33e9984d8f557c143b6cc0f7f05750a454"
 dependencies = [
  "auto_impl",
  "revm-primitives",
@@ -8724,7 +8721,7 @@ dependencies = [
 [[package]]
 name = "revm-handler"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.1.0-facet#b1a61e33e9984d8f557c143b6cc0f7f05750a454"
 dependencies = [
  "auto_impl",
  "revm-bytecode",
@@ -8741,7 +8738,7 @@ dependencies = [
 [[package]]
 name = "revm-inspector"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.1.0-facet#b1a61e33e9984d8f557c143b6cc0f7f05750a454"
 dependencies = [
  "auto_impl",
  "revm-context",
@@ -8757,7 +8754,7 @@ dependencies = [
 [[package]]
 name = "revm-interpreter"
 version = "18.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.1.0-facet#b1a61e33e9984d8f557c143b6cc0f7f05750a454"
 dependencies = [
  "revm-bytecode",
  "revm-context-interface",
@@ -8768,7 +8765,7 @@ dependencies = [
 [[package]]
 name = "revm-precompile"
 version = "19.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.1.0-facet#b1a61e33e9984d8f557c143b6cc0f7f05750a454"
 dependencies = [
  "ark-bls12-381",
  "ark-bn254",
@@ -8794,7 +8791,7 @@ dependencies = [
 [[package]]
 name = "revm-primitives"
 version = "18.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.1.0-facet#b1a61e33e9984d8f557c143b6cc0f7f05750a454"
 dependencies = [
  "alloy-primitives",
  "enumn",
@@ -8804,7 +8801,7 @@ dependencies = [
 [[package]]
 name = "revm-state"
 version = "3.0.0"
-source = "git+https://github.com/0xFacet/facet-revm?tag=v3.0.1-facet#bb6ba840bbf1f3ee89eeb80be118d21c028bd58b"
+source = "git+https://github.com/0xFacet/facet-revm?tag=v3.1.0-facet#b1a61e33e9984d8f557c143b6cc0f7f05750a454"
 dependencies = [
  "bitflags 2.9.1",
  "revm-bytecode",
@@ -9772,9 +9769,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-build"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5563b406d74b417ce07c0d7e0d8184b423f3bc3eacd1e98b105691a167f47c8f"
+checksum = "a8b0ae601dd5e1ed72e8f7bfdb3db25409daa3975f1f34b7e4c6dc11cb7756bd"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -9786,9 +9783,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-core-executor"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "291c086ca35f43725b33337a7a33c64418d89033d8d6e5586f82b9de2cf90dcb"
+checksum = "2a585a154b0b43d75481c5e58057c3dd72d88c8a36b30205a2365718e493cd2d"
 dependencies = [
  "bincode",
  "bytemuck",
@@ -9825,9 +9822,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-core-machine"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "236d063c38900e8346342af0b352a23d25b9806b624ee30fcae4c0cc7ddbed27"
+checksum = "20e23baf403939adcbe73070bf03f41da26e0d4a18382408a945606cb168fb0d"
 dependencies = [
  "bincode",
  "cbindgen",
@@ -9870,6 +9867,7 @@ dependencies = [
  "static_assertions",
  "strum 0.26.3",
  "strum_macros 0.26.4",
+ "sysinfo",
  "tempfile",
  "thiserror 1.0.69",
  "tracing",
@@ -9881,9 +9879,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-cuda"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2c81ab46ba84d41e471351329a69ac43be7da1aa701ed29c70048c83c0fe28c"
+checksum = "a2efa1d0adcc7744ca6427898ba8ce4e8a5d94540e674b5c2e136821f086376f"
 dependencies = [
  "bincode",
  "ctrlc",
@@ -9898,9 +9896,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-curves"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4d6faecc70f0ca84d0e1259ab2f5eb6d2d351d263c3cd00edf654f8530c0473"
+checksum = "9208e3831da02d1327bd33d852d06770a1c6dbd291591e5a6f0f6a3f4fc44ff9"
 dependencies = [
  "cfg-if",
  "dashu",
@@ -9920,9 +9918,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-derive"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c25a3bd262f3b0b0ab59d9bc86638ebd895ade9c16526203023c08f926d62732"
+checksum = "5efc1439094c4dc86e35e2ded63ef2b56b2717671adc0582373e9a7ac76c8b34"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -9930,9 +9928,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-lib"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0fd8bc101e5603ccf2dc1836ea06410f25ce2298755b2dac626add9be2424b4"
+checksum = "0b40a70ba0e385efc08ad88e289589d818f1e0c72525eee424e230e4e72565e5"
 dependencies = [
  "bincode",
  "elliptic-curve",
@@ -9942,9 +9940,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-primitives"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "699935774a5131c1a8b371108d0666c0c80c43611045fb77fae43f2f242676d5"
+checksum = "5504d5a422be065fa8f1fc49ff5208017d6e3fe7e392a7761e73178581f5f35d"
 dependencies = [
  "bincode",
  "blake3",
@@ -9962,9 +9960,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-prover"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f9381b478115137a435d02756dae7f3da01abaa0b1b9db8c0973389bd5bfaa9"
+checksum = "afaa1d5a3ccb8b366ec109c396681fdc07d8c637aa6003889f171aaac86d18ed"
 dependencies = [
  "anyhow",
  "bincode",
@@ -10007,9 +10005,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-circuit"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e56f69b0e112a7fbba23cbef61fb37f6092ba6897425859b30c4cd2786450179"
+checksum = "df69d5d8fac13f45cf4f2d79e27204091fde377ec71253dd7b55101de675d5fb"
 dependencies = [
  "hashbrown 0.14.5",
  "itertools 0.13.0",
@@ -10042,9 +10040,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-compiler"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6101a4c46d55206a5f0d312fd6f663248cbdb49c90f1662138f20472bef31b71"
+checksum = "315f723325c6029c0716ff3b272aaffe4c0a7f9612d2b3fe5b3d4838895f9e3d"
 dependencies = [
  "backtrace",
  "itertools 0.13.0",
@@ -10064,9 +10062,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-core"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13fa9644be4e3b9cf0b1f0976b2c3814dbd5b6d6f47dc8662d6a22828f2c3dd7"
+checksum = "70c10b0080100f579c90914c1587414a4adc3a102e2d607566f3ac8a60f67536"
 dependencies = [
  "backtrace",
  "cbindgen",
@@ -10107,9 +10105,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-derive"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5e6d5c7e2620d61956e6f75026a88ef2f714dab4abf84e870f13145e6bbec79"
+checksum = "6e2016c366414f7ae15f1f45c87082ca39a6b12edf5573cfef324d534e558972"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -10117,9 +10115,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-recursion-gnark-ffi"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d40fc06701180ce02d6079370d00ca74b8d86c84d85909a3684eddc8bfd8c1bf"
+checksum = "b10e8e6519c601ee244ff29d2746787d524034b4dbe42a1d66f901386396febd"
 dependencies = [
  "anyhow",
  "bincode",
@@ -10143,11 +10141,12 @@ dependencies = [
 
 [[package]]
 name = "sp1-sdk"
-version = "5.0.6"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05114cab7a33f251cf8d470ed85497297dd127a4727569a1a11f759f02136357"
+checksum = "107fab01d5f78c4d3537ddd768de9b22d9ba442aea50d404c2a988265bdb00ba"
 dependencies = [
  "alloy-primitives",
+ "alloy-sol-types",
  "anyhow",
  "async-trait",
  "backoff",
@@ -10188,9 +10187,9 @@ dependencies = [
 
 [[package]]
 name = "sp1-stark"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a795a0a309949772a6f26480f5d844e9f2fad9ef82e4caef9e7b0cec98daffe"
+checksum = "dbe80bdd3bb89d1543c1ad53a47fd902fe20293d4e1ccc20ca2ecff600f32477"
 dependencies = [
  "arrayref",
  "hashbrown 0.14.5",
@@ -10223,14 +10222,15 @@ dependencies = [
 
 [[package]]
 name = "sp1-zkvm"
-version = "5.0.5"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3aae088b8816da83224f4eec9bb08d81b62c02c6e74b1a8c7076fe8d45cd438"
+checksum = "e1d5c3822ddde97f32b6c1ad997579977d96a9f5d712b9fd493ea93ea95b43df"
 dependencies = [
  "cfg-if",
  "critical-section",
  "embedded-alloc",
  "getrandom 0.2.16",
+ "getrandom 0.3.3",
  "lazy_static",
  "libm",
  "p3-baby-bear",
@@ -12360,4 +12360,4 @@ dependencies = [
 [[patch.unused]]
 name = "kona-comp"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?tag=v1.0.1-facet#819961f2a8477d68ec3c225ee4211ca7cf0ee636"
+source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"

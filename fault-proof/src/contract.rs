@@ -13,6 +13,7 @@ sol! {
         event ProposalClosed(uint256 indexed proposalId);
         event ProposerPermissionUpdated(address indexed proposer, bool allowed);
         event BlockProven(uint256 indexed l2BlockNumber, bytes32 root, address indexed prover);
+        event L1BlockHashCheckpointed(uint256 indexed l1BlockNumber, bytes32 blockHash);
 
         // Errors
         error BadAuth();
@@ -75,7 +76,7 @@ sol! {
             uint32  parentIndex;
             uint32  deadline;
     
-            uint64  resolvedAt;
+            uint32  resolvedAt;
             ProposalStatus   proposalStatus;
             ResolutionStatus resolutionStatus;
             address challenger;
