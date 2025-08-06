@@ -12,8 +12,7 @@ import {FacetScript} from "lib/facet-sol/src/foundry-utils/FacetScript.sol";
 contract DeployBridges is Script, FacetScript {
     function run() external broadcast {
         // Read existing Rollup address from environment
-        address rollupAddress = vm.envAddress("EXISTING_ROLLUP_ADDRESS");
-        require(rollupAddress != address(0), "Must provide EXISTING_ROLLUP_ADDRESS");
+        address rollupAddress = vm.envAddress("ROLLUP_ADDRESS");
         
         Rollup rollup = Rollup(rollupAddress);
         console.log("\n=== Using existing Rollup at:", rollupAddress, "===");
@@ -33,10 +32,8 @@ contract DeployBridges is Script, FacetScript {
         console.log("L1 Bridge linked to L2 Bridge at:", l2BridgeAddress);
         
         // Renounce ownership if requested
-        if (vm.envBool("RENOUNCE_BRIDGE_OWNERSHIP")) {
-            console.log("Renouncing bridge ownership");
-            l1Bridge.renounceOwnership();
-        }
+        console.log("Renouncing bridge ownership");
+        l1Bridge.renounceOwnership();
         
         // Output deployment summary
         console.log("\n========================================");
@@ -57,8 +54,8 @@ contract DeployBridges is Script, FacetScript {
     function deployL2BridgeViaFacet(address l1BridgeAddress) internal returns (address) {
         // L2Bridge constructor takes (string name, string symbol, address l1Bridge)
         bytes memory constructorArgs = abi.encode(
-            vm.envOr("L2_TOKEN_NAME", string("Facet Fun Bucks")),
-            vm.envOr("L2_TOKEN_SYMBOL", string("FFB")),
+            "Bluebird WETH",
+            "BBWETH",
             l1BridgeAddress
         );
         return deployContract("L2Bridge", type(L2Bridge).creationCode, constructorArgs);
