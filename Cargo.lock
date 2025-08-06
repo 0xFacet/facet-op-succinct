@@ -4916,7 +4916,7 @@ dependencies = [
 [[package]]
 name = "kona-cli"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "clap",
  "libc",
@@ -4928,7 +4928,7 @@ dependencies = [
 [[package]]
 name = "kona-client"
 version = "1.0.1"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -4967,7 +4967,7 @@ dependencies = [
 [[package]]
 name = "kona-derive"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -4988,7 +4988,7 @@ dependencies = [
 [[package]]
 name = "kona-driver"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-consensus",
  "alloy-evm",
@@ -5009,7 +5009,7 @@ dependencies = [
 [[package]]
 name = "kona-engine"
 version = "0.1.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5045,7 +5045,7 @@ dependencies = [
 [[package]]
 name = "kona-executor"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5069,7 +5069,7 @@ dependencies = [
 [[package]]
 name = "kona-genesis"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5090,7 +5090,7 @@ dependencies = [
 [[package]]
 name = "kona-hardforks"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-eips 0.15.11",
  "alloy-primitives",
@@ -5101,7 +5101,7 @@ dependencies = [
 [[package]]
 name = "kona-host"
 version = "1.0.1"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5149,7 +5149,7 @@ dependencies = [
 [[package]]
 name = "kona-interop"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5170,12 +5170,12 @@ dependencies = [
 [[package]]
 name = "kona-macros"
 version = "0.1.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 
 [[package]]
 name = "kona-mpt"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-primitives",
  "alloy-rlp",
@@ -5187,7 +5187,7 @@ dependencies = [
 [[package]]
 name = "kona-p2p"
 version = "0.1.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-consensus",
  "alloy-primitives",
@@ -5220,7 +5220,7 @@ dependencies = [
 [[package]]
 name = "kona-preimage"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-primitives",
  "async-channel",
@@ -5234,7 +5234,7 @@ dependencies = [
 [[package]]
 name = "kona-proof"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5270,7 +5270,7 @@ dependencies = [
 [[package]]
 name = "kona-proof-interop"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5302,7 +5302,7 @@ dependencies = [
 [[package]]
 name = "kona-protocol"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloc-no-stdlib",
  "alloy-consensus",
@@ -5334,7 +5334,7 @@ dependencies = [
 [[package]]
 name = "kona-providers-alloy"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-consensus",
  "alloy-eips 0.15.11",
@@ -5363,7 +5363,7 @@ dependencies = [
 [[package]]
 name = "kona-registry"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-chains",
  "alloy-primitives",
@@ -5377,7 +5377,7 @@ dependencies = [
 [[package]]
 name = "kona-rpc"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-eips 0.15.11",
  "alloy-primitives",
@@ -5402,7 +5402,7 @@ dependencies = [
 [[package]]
 name = "kona-serde"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "alloy-primitives",
  "serde",
@@ -5412,7 +5412,7 @@ dependencies = [
 [[package]]
 name = "kona-std-fpvm"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "async-trait",
  "buddy_system_allocator",
@@ -5424,7 +5424,7 @@ dependencies = [
 [[package]]
 name = "kona-std-fpvm-proc"
 version = "0.2.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"
 dependencies = [
  "cfg-if",
  "kona-std-fpvm",
@@ -12360,4 +12360,4 @@ dependencies = [
 [[patch.unused]]
 name = "kona-comp"
 version = "0.3.0"
-source = "git+https://github.com/0xFacet/facet-kona?branch=bluebird#244948f8de79915573362cac53a2c556bffce78b"
+source = "git+https://github.com/0xFacet/facet-kona?tag=v2.0.0-facet#9a0e542bc0d42e2340d375113a49e0c255babc3c"

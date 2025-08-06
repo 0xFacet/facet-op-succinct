@@ -83,49 +83,49 @@ else
     # Create config with GitHub patches
     cat > .cargo/config.toml << 'EOF'
 [patch."https://github.com/op-rs/kona"]
-kona-mpt = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-derive = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-driver = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-preimage = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-executor = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-proof = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-client = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-host = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-providers-alloy = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-rpc = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-protocol = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-registry = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-genesis = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-std-fpvm = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-std-fpvm-proc = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-cli = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-comp = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-hardforks = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-interop = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-macros = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-p2p = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-proof-interop = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-serde = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
-kona-engine = { git = "https://github.com/0xFacet/facet-kona", tag = "v1.0.1-facet" }
+kona-mpt = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-derive = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-driver = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-preimage = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-executor = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-proof = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-client = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-host = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-providers-alloy = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-rpc = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-protocol = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-registry = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-genesis = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-std-fpvm = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-std-fpvm-proc = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-cli = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-comp = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-hardforks = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-interop = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-macros = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-p2p = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-proof-interop = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-serde = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-engine = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
 
 [patch.crates-io]
-revm = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.0.1-facet" }
-revm-bytecode = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.0.1-facet" }
-revm-context = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.0.1-facet" }
-revm-context-interface = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.0.1-facet" }
-revm-database = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.0.1-facet" }
-revm-database-interface = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.0.1-facet" }
-revm-handler = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.0.1-facet" }
-revm-inspector = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.0.1-facet" }
-revm-interpreter = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.0.1-facet" }
-revm-precompile = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.0.1-facet" }
-revm-primitives = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.0.1-facet" }
-revm-state = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.0.1-facet" }
-op-revm = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.0.1-facet" }
+revm = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.1.0-facet" }
+revm-bytecode = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.1.0-facet" }
+revm-context = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.1.0-facet" }
+revm-context-interface = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.1.0-facet" }
+revm-database = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.1.0-facet" }
+revm-database-interface = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.1.0-facet" }
+revm-handler = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.1.0-facet" }
+revm-inspector = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.1.0-facet" }
+revm-interpreter = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.1.0-facet" }
+revm-precompile = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.1.0-facet" }
+revm-primitives = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.1.0-facet" }
+revm-state = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.1.0-facet" }
+op-revm = { git = "https://github.com/0xFacet/facet-revm", tag = "v3.1.0-facet" }
 EOF
     
     echo "✅ Switched to GitHub dependencies"
-    echo "   - REVM: 0xFacet/facet-revm (tag: v3.0.1-facet)"
+    echo "   - REVM: 0xFacet/facet-revm (tag: v3.1.0-facet)"
     echo "   - Kona: 0xFacet/facet-kona (tag: v1.0.1-facet)"
 fi
 

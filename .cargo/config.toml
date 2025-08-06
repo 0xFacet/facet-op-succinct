@@ -1,28 +1,28 @@
 [patch."https://github.com/op-rs/kona"]
-kona-mpt = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-derive = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-driver = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-preimage = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-executor = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-proof = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-client = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-host = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-providers-alloy = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-rpc = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-protocol = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-registry = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-genesis = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-std-fpvm = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-std-fpvm-proc = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-cli = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-comp = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-hardforks = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-interop = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-macros = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-p2p = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-proof-interop = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-serde = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
-kona-engine = { git = "https://github.com/0xFacet/facet-kona", branch = "bluebird" }
+kona-mpt = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-derive = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-driver = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-preimage = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-executor = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-proof = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-client = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-host = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-providers-alloy = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-rpc = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-protocol = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-registry = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-genesis = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-std-fpvm = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-std-fpvm-proc = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-cli = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-comp = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-hardforks = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-interop = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-macros = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-p2p = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-proof-interop = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-serde = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
+kona-engine = { git = "https://github.com/0xFacet/facet-kona", tag= "v2.0.0-facet" }
 
 [patch.crates-io]
 op-alloy-network = { git = "https://github.com/0xFacet/facet-op-alloy", tag = "v0.15.4-facet" }
