@@ -3,6 +3,7 @@ pragma solidity 0.8.24;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {AddressAliasHelper} from "optimism/packages/contracts-bedrock/src/vendor/AddressAliasHelper.sol";
+import {L1Bridge} from "src/L1Bridge.sol";
 
 interface IL2ToL1MessagePasser {
     function initiateWithdrawal(address _target, uint256 _gasLimit, bytes calldata _data) external payable;
@@ -21,6 +22,7 @@ contract L2Bridge is ERC20 {
     error UnauthorizedBridge();
     error InvalidWithdrawalAmount();
     error InvalidL1Bridge();
+    error DepositAlreadyFinalized();
 
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
@@ -29,12 +31,19 @@ contract L2Bridge is ERC20 {
     address public immutable l1Bridge;
     IL2ToL1MessagePasser public constant MESSAGE_PASSER =
         IL2ToL1MessagePasser(0x4200000000000000000000000000000000000016);
+    
+    /*//////////////////////////////////////////////////////////////
+                               STORAGE
+    //////////////////////////////////////////////////////////////*/
+    
+    // Tracks which deposits have been finalized to prevent replay attacks
+    mapping(uint256 => bool) public finalizedDeposits;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event DepositFinalized(address indexed to, uint256 amount);
+    event DepositFinalized(uint256 indexed nonce, address indexed to, uint256 amount);
     event WithdrawalInitiated(address indexed from, address indexed to, uint256 amount);
 
     modifier onlyL1Bridge() {
@@ -51,9 +60,19 @@ contract L2Bridge is ERC20 {
                                DEPOSIT
     //////////////////////////////////////////////////////////////*/
 
-    function finalizeDeposit(address to, uint256 amount) external onlyL1Bridge {
-        _mint(to, amount);
-        emit DepositFinalized(to, amount);
+    function finalizeDeposit(
+        L1Bridge.DepositTransaction calldata deposit
+    ) external onlyL1Bridge {
+        // Check if deposit has already been finalized
+        if (finalizedDeposits[deposit.nonce]) revert DepositAlreadyFinalized();
+        
+        // Mark deposit as finalized
+        finalizedDeposits[deposit.nonce] = true;
+        
+        // Mint tokens to recipient
+        _mint(deposit.to, deposit.amount);
+        
+        emit DepositFinalized(deposit.nonce, deposit.to, deposit.amount);
     }
 
     /*//////////////////////////////////////////////////////////////

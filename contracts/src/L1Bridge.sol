@@ -11,6 +11,7 @@ import {LibFacet} from "facet-sol/src/utils/LibFacet.sol";
 import {SafeTransferLib} from "solady/src/utils/SafeTransferLib.sol";
 import {L2Bridge} from "src/L2Bridge.sol";
 import {Rollup} from "src/Rollup.sol";
+import {EOA} from "src/facet-libraries/EOA.sol";
 
 /**
  * @title L1Bridge
@@ -51,6 +52,22 @@ import {Rollup} from "src/Rollup.sol";
  */
 contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
     using SafeTransferLib for address;
+    
+    /*//////////////////////////////////////////////////////////////
+                                STRUCTS
+    //////////////////////////////////////////////////////////////*/
+    
+    /**
+     * @notice Represents a deposit transaction
+     * @param nonce Unique nonce for the deposit
+     * @param to Address that will receive the deposit on L2
+     * @param amount Amount of ETH being deposited
+     */
+    struct DepositTransaction {
+        uint256 nonce;
+        address to;
+        uint256 amount;
+    }
 
     /*//////////////////////////////////////////////////////////////
                             CUSTOM ERRORS
@@ -67,6 +84,9 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
     error L2BridgeAlreadySet();
     error RootBlacklisted();
     error WithdrawalDelayNotMet();
+    error InvalidDepositParameters();
+    error InvalidNonce();
+    error OnlyCanDepositWithoutTo();
 
     /*//////////////////////////////////////////////////////////////
                                 CONFIG
@@ -90,12 +110,17 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
 
     mapping(bytes32 => mapping(Rollup => ProvenWithdrawal)) public proven;
     mapping(bytes32 => bool) public finalized;
+    
+    // Deposit replay protection
+    mapping(uint256 => bytes32) public depositHashes; // nonce => hash(recipient, amount)
+    uint256 public depositNonce;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event DepositInitiated(address indexed from, address indexed to, uint256 amount);
+    event DepositInitiated(uint256 indexed nonce, address indexed from, address indexed to, uint256 amount);
+    event DepositReplayed(uint256 indexed nonce, address indexed to, uint256 amount);
     event WithdrawalProven(address indexed rollup, address indexed to, uint256 amount, uint256 nonce, uint256 proposalId);
     event WithdrawalFinalized(address indexed to, uint256 amount, uint256 nonce);
     event RollupUpdated(address indexed oldRollup, address indexed newRollup);
@@ -108,6 +133,9 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
 
     // storage key slot used by the L2ToL1MessagePasser contract
     bytes32 internal constant MESSAGE_PASSER_SLOT = bytes32(uint256(0));
+    
+    // Gas limit for FACET transactions
+    uint256 internal constant DEPOSIT_GAS_LIMIT = 500_000;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
@@ -178,23 +206,65 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
                                   DEPOSIT
     //////////////////////////////////////////////////////////////*/
 
-    function initiateDeposit() public payable virtual whenNotPaused {
+    /**
+     * @notice Initiates a deposit that can be replayed if FACET block is full
+     * @param to Address that will receive the deposit on L2
+     * @return nonce Unique nonce for this deposit that can be used for replay
+     */
+    function initiateDeposit(address to) public payable virtual whenNotPaused returns (uint256 nonce) {
         if (l2Bridge == address(0)) revert L2BridgeNotSet();
+        if (msg.value == 0) revert InvalidDepositAmount();
+        
+        // Increment nonce and store deposit hash
+        nonce = ++depositNonce;
+        
+        // Create deposit transaction struct
+        DepositTransaction memory deposit = DepositTransaction({
+            nonce: nonce,
+            to: to,
+            amount: msg.value
+        });
+        
+        // Store hash of deposit for replay verification
+        depositHashes[nonce] = _hashDeposit(deposit);
+        
+        // Send the deposit message to L2
+        _sendDepositToL2(deposit);
+        
+        emit DepositInitiated(nonce, msg.sender, to, msg.value);
+    }
 
-        uint256 amount = msg.value;
-        address recipient = msg.sender;
-
-        if (amount == 0) revert InvalidDepositAmount();
-
-        bytes memory data = abi.encodeWithSelector(L2Bridge.finalizeDeposit.selector, recipient, amount);
-
-        LibFacet.sendFacetTransaction({to: l2Bridge, gasLimit: 500_000, data: data});
-
-        emit DepositInitiated(recipient, recipient, amount);
+    function replayDeposit(
+        DepositTransaction calldata deposit
+    ) external virtual whenNotPaused {
+        // Verify nonce exists and parameters match
+        bytes32 storedHash = depositHashes[deposit.nonce];
+        bytes32 paramsHash = _hashDeposit(deposit);
+        
+        if (storedHash != paramsHash) revert InvalidDepositParameters();
+        
+        // Send the same deposit message to L2
+        _sendDepositToL2(deposit);
+        
+        emit DepositReplayed(deposit.nonce, deposit.to, deposit.amount);
+    }
+    
+    function _sendDepositToL2(
+        DepositTransaction memory deposit
+    ) internal {
+        bytes memory data = abi.encodeWithSelector(
+            L2Bridge.finalizeDeposit.selector,
+            deposit
+        );
+        
+        LibFacet.sendFacetTransaction({to: l2Bridge, gasLimit: DEPOSIT_GAS_LIMIT, data: data});
     }
 
     receive() external payable {
-        initiateDeposit();
+        if (!EOA.isSenderEOA()) revert OnlyCanDepositWithoutTo();
+        
+        // For EOAs depositing via receive, deposit to themselves
+        initiateDeposit(msg.sender);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -295,5 +365,14 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
             data: data
         });
         return Hashing.hashWithdrawal(w);
+    }
+    
+    /**
+     * @notice Internal function to hash a deposit transaction
+     * @param deposit The deposit transaction to hash
+     * @return Hash of the deposit transaction
+     */
+    function _hashDeposit(DepositTransaction memory deposit) internal pure returns (bytes32) {
+        return keccak256(abi.encode(deposit.nonce, deposit.to, deposit.amount));
     }
 }

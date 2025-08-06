@@ -105,7 +105,7 @@ contract L1BridgeTrainingWheelsTest is Test {
         // User should be able to deposit initially
         vm.deal(user, 1 ether);
         vm.prank(user);
-        bridge.initiateDeposit{value: 0.5 ether}();
+        bridge.initiateDeposit{value: 0.5 ether}(user);
         
         // Owner pauses the bridge
         vm.prank(owner);
@@ -116,7 +116,7 @@ contract L1BridgeTrainingWheelsTest is Test {
         // User cannot deposit when paused
         vm.prank(user);
         vm.expectRevert("Pausable: paused");
-        bridge.initiateDeposit{value: 0.1 ether}();
+        bridge.initiateDeposit{value: 0.1 ether}(user);
         
         // Owner unpauses
         vm.prank(owner);
@@ -126,7 +126,7 @@ contract L1BridgeTrainingWheelsTest is Test {
         
         // User can deposit again
         vm.prank(user);
-        bridge.initiateDeposit{value: 0.1 ether}();
+        bridge.initiateDeposit{value: 0.1 ether}(user);
     }
     
     function testPauseWithdrawals() public {
