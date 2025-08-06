@@ -135,6 +135,11 @@ where
         let (l1_block_number, l1_head_hash) = self.get_l1_block_for_proof().await
             .context("Failed to get L1 block for proof")?;
         
+        // Checkpoint L1 block immediately to prevent it from becoming too old
+        tracing::info!("Checkpointing L1 block {} before proof generation", l1_block_number);
+        self.checkpoint_l1_block(l1_block_number).await
+            .context("Failed to checkpoint L1 block - block may be too old for proof generation")?;
+        
         let l2_block_number = proposal.l2BlockNumber;
         
         // Validate proposal data
@@ -215,6 +220,7 @@ where
                     .strategy(FulfillmentStrategy::Hosted)
                     .skip_simulation(true)
                     .cycle_limit(self.config.cycle_limit)
+                    .timeout(Duration::from_secs(self.config.timeout))
                     .run_async()
                     .await?
             };
@@ -273,9 +279,6 @@ where
                 .run_async()
                 .await?
         };
-
-        // Checkpoint L1 block right before submission
-        self.checkpoint_l1_block(l1_block_number).await?;
         
         let transaction_request = self.rollup
             .proveProposal(
@@ -638,8 +641,8 @@ where
             .await?
             .context("Failed to get latest block")?;
         
-        // Use latest - 1 for minimal reorg protection
-        let target_number = latest.header.number.saturating_sub(1);
+        // Use latest - 2 for minimal reorg protection
+        let target_number = latest.header.number.saturating_sub(2);
         
         let block = self.l1_provider
             .get_block(BlockNumberOrTag::Number(target_number).into())

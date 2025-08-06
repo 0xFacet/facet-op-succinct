@@ -70,7 +70,7 @@ contract BridgeIntegrationTest is Test {
     uint256 constant GENESIS_TIMESTAMP = 1000000;
 
     // Events to test
-    event DepositInitiated(address indexed from, address indexed to, uint256 amount);
+    event DepositInitiated(uint256 indexed nonce, address indexed from, address indexed to, uint256 amount);
     event WithdrawalInitiated(address indexed from, address indexed to, uint256 amount);
     event WithdrawalProven(address indexed rollup, address indexed to, uint256 amount, uint256 nonce, uint256 proposalId);
     event WithdrawalFinalized(address indexed to, uint256 amount, uint256 nonce);
@@ -175,10 +175,10 @@ contract BridgeIntegrationTest is Test {
 
         // Test direct deposit
         vm.expectEmit(true, true, true, true);
-        emit DepositInitiated(user, user, depositAmount);
+        emit DepositInitiated(1, user, user, depositAmount);
 
         vm.prank(user);
-        l1Bridge.initiateDeposit{value: depositAmount}();
+        l1Bridge.initiateDeposit{value: depositAmount}(user);
 
         // We can't directly verify LibFacet calls with the real bridge
         // but the DepositInitiated event confirms the deposit worked
@@ -193,13 +193,18 @@ contract BridgeIntegrationTest is Test {
 
         uint256 depositAmount = 2 ether;
 
-        // Send ETH directly to trigger receive()
-        vm.prank(user);
+        // Test that contracts cannot use receive()
+        vm.prank(address(this));
         (bool success,) = address(l1Bridge).call{value: depositAmount}("");
-        assertTrue(success);
+        assertFalse(success, "Contract should not be able to use receive");
+
+        // Test that EOAs can use receive()
+        // We need to simulate an EOA by setting tx.origin = msg.sender
+        vm.prank(user, user); // second param sets tx.origin
+        (success,) = address(l1Bridge).call{value: depositAmount}("");
+        assertTrue(success, "EOA should be able to use receive");
 
         // The DepositInitiated event emission confirms the deposit worked
-        // We can't inspect LibFacet calls directly with the real bridge
     }
 
     /**
@@ -210,12 +215,22 @@ contract BridgeIntegrationTest is Test {
 
         // Try to mint from non-L1 bridge address
         vm.expectRevert(L2Bridge.UnauthorizedBridge.selector);
-        l2Bridge.finalizeDeposit(user, 1 ether);
+        L1Bridge.DepositTransaction memory deposit = L1Bridge.DepositTransaction({
+            nonce: 1,
+            to: user,
+            amount: 1 ether
+        });
+        l2Bridge.finalizeDeposit(deposit);
 
         // Mint from aliased L1 bridge should work
         address aliasedL1 = AddressAliasHelper.applyL1ToL2Alias(address(l1Bridge));
         vm.prank(aliasedL1);
-        l2Bridge.finalizeDeposit(user, 1 ether);
+        L1Bridge.DepositTransaction memory deposit2 = L1Bridge.DepositTransaction({
+            nonce: 2,
+            to: user,
+            amount: 1 ether
+        });
+        l2Bridge.finalizeDeposit(deposit2);
 
         assertEq(l2Bridge.balanceOf(user), 1 ether);
     }
@@ -241,7 +256,7 @@ contract BridgeIntegrationTest is Test {
 
         vm.prank(user);
         vm.expectRevert(L1Bridge.InvalidDepositAmount.selector);
-        l1Bridge.initiateDeposit{value: 0}();
+        l1Bridge.initiateDeposit{value: 0}(user);
     }
 
     /**
@@ -253,10 +268,10 @@ contract BridgeIntegrationTest is Test {
 
         // Test that 1 wei deposit works
         vm.expectEmit(true, true, true, true);
-        emit DepositInitiated(user, user, 1);
+        emit DepositInitiated(1, user, user, 1);
         
         vm.prank(user);
-        l1Bridge.initiateDeposit{value: 1}();
+        l1Bridge.initiateDeposit{value: 1}(user);
     }
 
     /**
@@ -265,7 +280,7 @@ contract BridgeIntegrationTest is Test {
     function testDepositWithoutL2Bridge() public {
         vm.prank(user);
         vm.expectRevert(L1Bridge.L2BridgeNotSet.selector);
-        l1Bridge.initiateDeposit{value: 1 ether}();
+        l1Bridge.initiateDeposit{value: 1 ether}(user);
     }
 
     /**
@@ -282,7 +297,12 @@ contract BridgeIntegrationTest is Test {
         // Give user some tokens on L2
         address aliasedL1 = AddressAliasHelper.applyL1ToL2Alias(address(l1Bridge));
         vm.prank(aliasedL1);
-        l2Bridge.finalizeDeposit(user, 5 ether);
+        L1Bridge.DepositTransaction memory deposit5 = L1Bridge.DepositTransaction({
+            nonce: 1,
+            to: user,
+            amount: 5 ether
+        });
+        l2Bridge.finalizeDeposit(deposit5);
 
         // Fund the L1 bridge with ETH for withdrawals
         vm.deal(address(l1Bridge), 10 ether);
@@ -395,7 +415,12 @@ contract BridgeIntegrationTest is Test {
         // Setup withdrawal
         address aliasedL1 = AddressAliasHelper.applyL1ToL2Alias(address(l1Bridge));
         vm.prank(aliasedL1);
-        l2Bridge.finalizeDeposit(user, 5 ether);
+        L1Bridge.DepositTransaction memory deposit5 = L1Bridge.DepositTransaction({
+            nonce: 1,
+            to: user,
+            amount: 5 ether
+        });
+        l2Bridge.finalizeDeposit(deposit5);
 
         // Get the nonce before withdrawal
         uint256 nonce = messagePasser.messageNonce();
@@ -441,7 +466,12 @@ contract BridgeIntegrationTest is Test {
 
         address aliasedL1 = AddressAliasHelper.applyL1ToL2Alias(address(l1Bridge));
         vm.prank(aliasedL1);
-        l2Bridge.finalizeDeposit(user, 5 ether);
+        L1Bridge.DepositTransaction memory deposit5 = L1Bridge.DepositTransaction({
+            nonce: 1,
+            to: user,
+            amount: 5 ether
+        });
+        l2Bridge.finalizeDeposit(deposit5);
 
         // Get the nonce before withdrawal
         uint256 nonce = messagePasser.messageNonce();
@@ -495,7 +525,12 @@ contract BridgeIntegrationTest is Test {
         // Setup
         address aliasedL1 = AddressAliasHelper.applyL1ToL2Alias(address(l1Bridge));
         vm.prank(aliasedL1);
-        l2Bridge.finalizeDeposit(user, 5 ether);
+        L1Bridge.DepositTransaction memory deposit5 = L1Bridge.DepositTransaction({
+            nonce: 1,
+            to: user,
+            amount: 5 ether
+        });
+        l2Bridge.finalizeDeposit(deposit5);
 
         // Get the nonce before withdrawal
         uint256 nonce = messagePasser.messageNonce();
@@ -540,7 +575,12 @@ contract BridgeIntegrationTest is Test {
         // Setup
         address aliasedL1 = AddressAliasHelper.applyL1ToL2Alias(address(l1Bridge));
         vm.prank(aliasedL1);
-        l2Bridge.finalizeDeposit(user, 5 ether);
+        L1Bridge.DepositTransaction memory deposit5 = L1Bridge.DepositTransaction({
+            nonce: 1,
+            to: user,
+            amount: 5 ether
+        });
+        l2Bridge.finalizeDeposit(deposit5);
 
         // Get the nonce before withdrawal
         uint256 nonce = messagePasser.messageNonce();
@@ -601,7 +641,12 @@ contract BridgeIntegrationTest is Test {
 
         address aliasedL1 = AddressAliasHelper.applyL1ToL2Alias(address(l1Bridge));
         vm.prank(aliasedL1);
-        l2Bridge.finalizeDeposit(address(reentrant), 5 ether);
+        L1Bridge.DepositTransaction memory depositReentrant = L1Bridge.DepositTransaction({
+            nonce: 1,
+            to: address(reentrant),
+            amount: 5 ether
+        });
+        l2Bridge.finalizeDeposit(depositReentrant);
 
         // Fund the L1 bridge
         vm.deal(address(l1Bridge), 10 ether);
