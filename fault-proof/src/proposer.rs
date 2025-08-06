@@ -220,6 +220,7 @@ where
                     .strategy(FulfillmentStrategy::Hosted)
                     .skip_simulation(true)
                     .cycle_limit(self.config.cycle_limit)
+                    .timeout(Duration::from_secs(self.config.timeout))
                     .run_async()
                     .await?
             };
