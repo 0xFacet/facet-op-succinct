@@ -226,11 +226,11 @@ contract BridgeIntegrationTest is Test {
         address aliasedL1 = AddressAliasHelper.applyL1ToL2Alias(address(l1Bridge));
         vm.prank(aliasedL1);
         L1Bridge.DepositTransaction memory deposit2 = L1Bridge.DepositTransaction({
-            nonce: 1,
+            nonce: 2,
             to: user,
             amount: 1 ether
         });
-        l2Bridge.finalizeDeposit(deposit);
+        l2Bridge.finalizeDeposit(deposit2);
 
         assertEq(l2Bridge.balanceOf(user), 1 ether);
     }

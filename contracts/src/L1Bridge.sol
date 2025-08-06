@@ -58,10 +58,11 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
     
     /**
-     * @notice Represents a deposit transaction
-     * @param nonce Unique nonce for the deposit
+     * @notice Represents a deposit transaction that can be replayed if FACET blocks are full
+     * @dev This struct enables deposit retry functionality when L2 blocks hit gas limits
+     * @param nonce Unique global nonce for the deposit, used for replay verification
      * @param to Address that will receive the deposit on L2
-     * @param amount Amount of ETH being deposited
+     * @param amount Amount of ETH being deposited (in wei)
      */
     struct DepositTransaction {
         uint256 nonce;
@@ -111,8 +112,16 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
     mapping(bytes32 => mapping(Rollup => ProvenWithdrawal)) public proven;
     mapping(bytes32 => bool) public finalized;
     
-    // Deposit replay protection
-    mapping(uint256 => bytes32) public depositHashes; // nonce => hash(recipient, amount)
+    /**
+     * @notice Stores hashes of deposit parameters for replay verification
+     * @dev Maps nonce => keccak256(nonce, to, amount) to ensure replays use identical parameters
+     */
+    mapping(uint256 => bytes32) public depositHashes;
+    
+    /**
+     * @notice Global nonce counter for deposits
+     * @dev Incremented for each new deposit to ensure uniqueness
+     */
     uint256 public depositNonce;
 
     /*//////////////////////////////////////////////////////////////
@@ -207,9 +216,11 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Initiates a deposit that can be replayed if FACET block is full
+     * @notice Initiates a new deposit to L2 that can be replayed if FACET block is full
+     * @dev Stores a hash of deposit parameters to enable safe replay with identical parameters.
+     *      This is crucial for FACET integration where blocks may be full due to gas limits.
      * @param to Address that will receive the deposit on L2
-     * @return nonce Unique nonce for this deposit that can be used for replay
+     * @return nonce Unique nonce for this deposit that must be used for any replay attempts
      */
     function initiateDeposit(address to) public payable virtual whenNotPaused returns (uint256 nonce) {
         if (l2Bridge == address(0)) revert L2BridgeNotSet();
@@ -234,6 +245,13 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
         emit DepositInitiated(nonce, msg.sender, to, msg.value);
     }
 
+    /**
+     * @notice Replays a previously initiated deposit with identical parameters
+     * @dev Used when the initial deposit attempt failed due to FACET block being full.
+     *      Verifies that the deposit parameters match exactly what was originally stored.
+     *      This function does NOT require msg.value as it uses the originally deposited ETH.
+     * @param deposit The deposit transaction to replay (must match original parameters exactly)
+     */
     function replayDeposit(
         DepositTransaction calldata deposit
     ) external virtual whenNotPaused {
@@ -249,6 +267,11 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
         emit DepositReplayed(deposit.nonce, deposit.to, deposit.amount);
     }
     
+    /**
+     * @notice Internal function to send deposit message to L2
+     * @dev Uses LibFacet to send cross-chain message to FACET L2
+     * @param deposit The deposit transaction to send to L2
+     */
     function _sendDepositToL2(
         DepositTransaction memory deposit
     ) internal {
@@ -260,6 +283,12 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
         LibFacet.sendFacetTransaction({to: l2Bridge, gasLimit: DEPOSIT_GAS_LIMIT, data: data});
     }
 
+    /**
+     * @notice Allows EOAs to deposit ETH by sending it directly to the bridge
+     * @dev Restricted to EOAs only to prevent aliasing issues with contract addresses.
+     *      When an EOA sends ETH directly, it's deposited to their own address on L2.
+     *      Includes EIP-7702 delegated EOA support.
+     */
     receive() external payable {
         if (!EOA.isSenderEOA()) revert OnlyCanDepositWithoutTo();
         
@@ -368,9 +397,10 @@ contract L1Bridge is Ownable, ReentrancyGuard, Pausable {
     }
     
     /**
-     * @notice Internal function to hash a deposit transaction
+     * @notice Internal function to hash a deposit transaction for replay verification
+     * @dev Creates a unique hash from deposit parameters to ensure replay safety
      * @param deposit The deposit transaction to hash
-     * @return Hash of the deposit transaction
+     * @return Hash of the deposit transaction (keccak256 of encoded parameters)
      */
     function _hashDeposit(DepositTransaction memory deposit) internal pure returns (bytes32) {
         return keccak256(abi.encode(deposit.nonce, deposit.to, deposit.amount));
