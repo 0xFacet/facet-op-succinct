@@ -276,6 +276,8 @@ where
                 .network_prover
                 .prove(&self.prover.agg_pk, &agg_stdin)
                 .groth16()
+                .strategy(FulfillmentStrategy::Hosted)
+                .timeout(Duration::from_secs(self.config.timeout))
                 .run_async()
                 .await?
         };

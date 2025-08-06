@@ -18,7 +18,7 @@ contract DeployRollupAndBridges is Script, FacetScript {
 
     function run() external broadcast {
         // Read environment variables
-        bool useMockVerifier = vm.envOr("USE_SP1_MOCK_VERIFIER", false);
+        bool useMockVerifier = vm.envBool("USE_SP1_MOCK_VERIFIER");
         
         // Deploy everything
         
@@ -112,8 +112,8 @@ contract DeployRollupAndBridges is Script, FacetScript {
     function deployL2BridgeViaFacet(address l1BridgeAddress) internal returns (address) {
         // L2Bridge constructor takes (string name, string symbol, address l1Bridge)
         bytes memory constructorArgs = abi.encode(
-            "Facet Fun Bucks",  // name
-            "FFB",       // symbol  
+            "Bluebird WETH",  // name
+            "BBWETH",       // symbol  
             l1BridgeAddress
         );
         return deployContract("L2Bridge", type(L2Bridge).creationCode, constructorArgs);

@@ -15,12 +15,9 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+# Install Rust 1.88.0 (specific stable version that works)
 ENV PATH=/root/.cargo/bin:$PATH
-RUN rustup install stable && rustup default stable
-
-# Skip SP1 installation - not needed for runtime since ELFs are pre-built
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.88.0
 
 # Build stage
 FROM rust-base AS builder
@@ -28,8 +25,12 @@ FROM rust-base AS builder
 # Copy the entire workspace
 COPY . .
 
+# Check Rust version being used
+RUN rustc --version --verbose
+
 # Build the proposer binary
 RUN cargo build --release -p op-succinct-fp --bin proposer
+
 # Runtime stage (minimal image)
 FROM ubuntu:24.04
 
@@ -39,13 +40,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     curl \
     libssl-dev \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH=/root/.cargo/bin:$PATH
-RUN rustup install stable && rustup default stable
-    
 # Copy the built proposer binary
 COPY --from=builder /usr/src/app/target/release/proposer /usr/local/bin/
 
