@@ -108,7 +108,7 @@ export function DepositWizard() {
       <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8 bg-white rounded-lg shadow-sm">
         <h2 className="text-2xl font-bold mb-4">Deposit to Bluebird</h2>
         <p className="text-gray-600 mb-6">
-          Connect your wallet to deposit ETH from Sepolia to Bluebird L2.
+          Connect your wallet to deposit ETH to Facet Bluebird.
         </p>
       </div>
     )
