@@ -155,15 +155,29 @@ export function WithdrawalWizard() {
         )}
       </div>
 
-      {/* Reset button */}
-      {/* {state.step !== 'initiate' && !state.isFinalized && (
-        <button
-          onClick={reset}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          Start new withdrawal
-        </button>
-      )} */}
+      {/* Educational Information */}
+      <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <h3 className="text-sm font-semibold text-blue-900 mb-2">Understanding ZK-Proven Withdrawals</h3>
+        <div className="space-y-2 text-xs text-blue-800">
+          <p>
+            Unlike traditional bridges that rely on trusted operators or time delays, this bridge uses 
+            Zero-Knowledge proofs to cryptographically verify every withdrawal.
+          </p>
+          <div className="mt-2">
+            <strong>The Process:</strong>
+            <ol className="list-decimal list-inside ml-2 mt-1 space-y-1">
+              <li>Initiate withdrawal on L2 (burns your BBWETH)</li>
+              <li>Wait for the L2 state to be proposed to L1</li>
+              <li>Generate a ZK proof that your withdrawal is valid</li>
+              <li>Submit the proof to unlock your ETH on L1</li>
+            </ol>
+          </div>
+          <p className="mt-2 p-2 bg-blue-100 rounded">
+            <strong>Note:</strong> Because ownership is renounced, no one can pause withdrawals, 
+            blacklist addresses, or interfere with the process. Your withdrawal is guaranteed by mathematics.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

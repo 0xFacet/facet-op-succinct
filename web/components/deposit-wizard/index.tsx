@@ -4,17 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAccount, useBalance, useWalletClient, useChainId, useSwitchChain } from 'wagmi'
 import { formatEther, parseEther } from 'viem'
 import { config, l1PublicClient, l2PublicClient } from '@/lib/config'
-import { sendFacetTransaction } from '@0xfacet/sdk/viem'
-
-const ERC20_ABI = [
-  {
-    inputs: [{ name: 'owner', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const
+import { L1_BRIDGE_ABI, L2_BRIDGE_ABI } from '@/lib/contracts'
 
 export function DepositWizard() {
   const { address, isConnected } = useAccount()
@@ -46,7 +36,7 @@ export function DepositWizard() {
       try {
         const balance = await l2PublicClient.readContract({
           address: config.l2BridgeAddress,
-          abi: ERC20_ABI,
+          abi: L2_BRIDGE_ABI,
           functionName: 'balanceOf',
           args: [address]
         })
@@ -68,7 +58,7 @@ export function DepositWizard() {
     }
     
     if (!isOnL1) {
-      await switchChain({ chainId: config.l1ChainId })
+      switchChain({ chainId: config.l1ChainId })
       return
     }
     
@@ -78,9 +68,12 @@ export function DepositWizard() {
     try {
       const value = parseEther(amount)
       
-      // Send ETH to L1 bridge - it has a fallback that will handle the deposit
-      const hash = await walletClient.sendTransaction({
-        to: config.l1BridgeAddress,
+      // Call initiateDeposit function on L1 bridge
+      const hash = await walletClient.writeContract({
+        address: config.l1BridgeAddress,
+        abi: L1_BRIDGE_ABI,
+        functionName: 'initiateDeposit',
+        args: [address], // deposit to user's own address
         value,
       })
       
@@ -113,9 +106,9 @@ export function DepositWizard() {
   if (!isConnected) {
     return (
       <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8 bg-white rounded-lg shadow-sm">
-        <h2 className="text-2xl font-bold mb-4">Deposit to Facet</h2>
+        <h2 className="text-2xl font-bold mb-4">Deposit to Bluebird</h2>
         <p className="text-gray-600 mb-6">
-          Connect your wallet to deposit ETH from Sepolia to Facet L2.
+          Connect your wallet to deposit ETH from Sepolia to Bluebird L2.
         </p>
       </div>
     )
@@ -123,20 +116,20 @@ export function DepositWizard() {
   
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8 bg-white rounded-lg shadow-sm">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Deposit ETH to Facet</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Deposit ETH to Bluebird</h2>
       
       {/* Balance Display */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm font-medium text-gray-700">L1 Balance (Sepolia)</p>
+          <p className="text-sm font-medium text-gray-700">L1 Balance</p>
           <p className="text-lg font-semibold text-gray-900">
             {l1Balance ? formatEther(l1Balance.value) : '0'} ETH
           </p>
         </div>
         <div className="p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm font-medium text-gray-700">L2 Balance (Facet)</p>
+          <p className="text-sm font-medium text-gray-700">L2 Balance</p>
           <p className="text-lg font-semibold text-gray-900">
-            {formatEther(l2Balance)} FFB
+            {formatEther(l2Balance)} BBWETH
           </p>
           <p className="text-xs text-gray-600 mt-1">ERC20: {config.l2BridgeAddress.slice(0, 6)}...{config.l2BridgeAddress.slice(-4)}</p>
         </div>
@@ -215,12 +208,22 @@ export function DepositWizard() {
         </button>
       </div>
       
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="text-sm font-medium text-gray-800 mb-2">How it works</h3>
-        <p className="text-xs text-gray-700">
-          When you deposit ETH, it's sent to the L1 bridge contract which automatically 
-          credits your account with wrapped FFB on Facet L2. Your L2 balance will update within a few seconds.
-        </p>
+      <div className="mt-6 space-y-4">
+        <div className="p-4 bg-gray-50 rounded-lg">
+          <h3 className="text-sm font-medium text-gray-800 mb-2">How Deposits Work</h3>
+          <p className="text-xs text-gray-700">
+            When you deposit ETH, the L1 bridge contract locks your ETH and sends a message to Bluebird L2 
+            to mint equivalent BBWETH tokens to your account. This process is automatic and trustless.
+          </p>
+        </div>
+        
+        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+          <h3 className="text-sm font-medium text-green-900 mb-2">Security Guarantee</h3>
+          <p className="text-xs text-green-800">
+            With ownership renounced, your deposited ETH is locked permanently in the bridge contract. 
+            It can only be released through valid ZK-proven withdrawals—no admin can access or move these funds.
+          </p>
+        </div>
       </div>
     </div>
   )

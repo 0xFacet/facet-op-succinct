@@ -3,19 +3,26 @@ import { mainnet, sepolia } from 'viem/chains'
 import type { Address } from 'viem'
 import { facetSepolia, facetMainnet } from './chains'
 
+// Configuration from environment variables
+// These MUST be set in Vercel or local .env file
 export const config = {
-  l1ChainId: Number(process.env.NEXT_PUBLIC_L1_CHAIN_ID || 11155111),
-  l2ChainId: Number(process.env.NEXT_PUBLIC_L2_CHAIN_ID || 16436858),
+  // Chain IDs
+  l1ChainId: Number(process.env.NEXT_PUBLIC_L1_CHAIN_ID!),
+  l2ChainId: Number(process.env.NEXT_PUBLIC_L2_CHAIN_ID!),
   
-  l1RpcUrl: process.env.NEXT_PUBLIC_L1_RPC_URL || 'https://eth-sepolia.g.alchemy.com/v2/demo',
-  l2RpcUrl: process.env.NEXT_PUBLIC_L2_RPC_URL || 'https://sepolia.facet.org',
+  // RPC URLs
+  l1RpcUrl: process.env.NEXT_PUBLIC_L1_RPC_URL!,
+  l2RpcUrl: process.env.NEXT_PUBLIC_L2_RPC_URL!,
   
-  rollupAddress: (process.env.NEXT_PUBLIC_ROLLUP_ADDRESS || '0x0002fcfc87d560dfff2e20c9eadb17f59b2c3dc9') as Address,
-  l1BridgeAddress: (process.env.NEXT_PUBLIC_L1_BRIDGE_ADDRESS || '0x59bef954265a3957e736699de754ef3f2f3194ac') as Address,
-  l2BridgeAddress: (process.env.NEXT_PUBLIC_L2_BRIDGE_ADDRESS || '0x8484Fa5EE3a7d1Fd588D970fA655B10043962c45') as Address,
+  // Contract Addresses (from deployment script output)
+  rollupAddress: process.env.NEXT_PUBLIC_ROLLUP_ADDRESS as Address,
+  l1BridgeAddress: process.env.NEXT_PUBLIC_L1_BRIDGE_ADDRESS as Address,
+  l2BridgeAddress: process.env.NEXT_PUBLIC_L2_BRIDGE_ADDRESS as Address,
   
-  withdrawalDelaySecs: Number(process.env.NEXT_PUBLIC_WITHDRAWAL_DELAY_SECS || 60),
+  // Withdrawal delay in seconds
+  withdrawalDelaySecs: Number(process.env.NEXT_PUBLIC_WITHDRAWAL_DELAY_SECS!),
   
+  // Wallet Connect Project ID (optional)
   walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ''
 }
 

@@ -135,7 +135,7 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
         }
         
         if (!isOnL1) {
-          await switchChain({ chainId: config.l1ChainId })
+          switchChain({ chainId: config.l1ChainId })
           return
         }
         
@@ -228,8 +228,8 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
         <>
           {/* L2 Balance */}
           <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-gray-600">L2 Balance (Facet)</p>
-            <p className="text-lg font-semibold">{formatEther(l2Balance)} FFB</p>
+            <p className="text-sm text-gray-600">L2 Balance (Bluebird)</p>
+            <p className="text-lg font-semibold">{formatEther(l2Balance)} BBWETH</p>
           </div>
           
           {!isOnL1 && (
@@ -270,7 +270,7 @@ export function InitiateStep({ onNext }: InitiateStepProps) {
               <span className="absolute right-3 top-2.5 text-gray-500">ETH</span>
             </div>
             <p className="mt-1 text-xs text-gray-500">
-              Enter the amount of ETH to withdraw from Facet L2
+              Enter the amount of ETH to withdraw from Bluebird L2
             </p>
           </div>
         ) : (

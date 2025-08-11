@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Facet ZK-FP Bridge",
-  description: "Bridge ETH ↔️ Facet Fun Bucks",
+  title: "Facet Bluebird Bridge",
+  description: "Bridge ETH ↔️ Bluebird WETH",
 };
 
 export default function RootLayout({
