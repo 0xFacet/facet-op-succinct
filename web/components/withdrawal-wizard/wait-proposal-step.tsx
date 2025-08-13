@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { formatEther } from 'viem'
-import { l1PublicClient, l2PublicClient, config } from '@/lib/config'
+import { l1PublicClient, l2PublicClient, config, getL2Chain } from '@/lib/config'
 import { type WithdrawalData } from '@/lib/withdrawal-actions'
 import { useProposalTracking } from '@/hooks/useProposalTracking'
 import { useLatestWithdrawal } from '@/hooks/useLatestWithdrawal'
@@ -18,6 +18,10 @@ interface WaitProposalStepProps {
 export function WaitProposalStep({ withdrawalData, txHash, onProposalFound }: WaitProposalStepProps) {
   const [l2BlockNumber, setL2BlockNumber] = useState<bigint | null>(null)
   const [withdrawalTimestamp, setWithdrawalTimestamp] = useState<number | undefined>(undefined)
+  
+  // Get L2 explorer URL from chain config
+  const l2Chain = getL2Chain()
+  const l2Explorer = l2Chain.blockExplorers?.default.url || 'https://explorer.facet.org'
   
   // Get the withdrawal details to know when it was created
   const { withdrawal } = useLatestWithdrawal()
@@ -146,7 +150,7 @@ export function WaitProposalStep({ withdrawalData, txHash, onProposalFound }: Wa
             <div className="flex justify-between text-sm gap-2">
               <span className="text-gray-600 flex-shrink-0">Transaction:</span>
               <a 
-                href={`https://sepolia.explorer.facet.org/tx/${txHash}`}
+                href={`${l2Explorer}/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:text-blue-700 underline text-xs"

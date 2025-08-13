@@ -5,8 +5,9 @@ export function ContractsFooter() {
   const l1Chain = getL1Chain()
   const l2Chain = getL2Chain()
   
-  const l1Explorer = l1Chain.blockExplorers?.default.url || 'https://sepolia.etherscan.io'
-  const l2Explorer = l2Chain.blockExplorers?.default.url || 'https://sepolia.explorer.facet.org'
+  // Use chain's block explorer URLs
+  const l1Explorer = l1Chain.blockExplorers?.default.url || 'https://etherscan.io'
+  const l2Explorer = l2Chain.blockExplorers?.default.url || 'https://explorer.facet.org'
   
   return (
     <footer className="bg-gray-100 border-t border-gray-200 mt-20">
