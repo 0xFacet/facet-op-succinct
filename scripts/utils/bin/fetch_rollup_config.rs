@@ -81,10 +81,10 @@ async fn update_l2oo_config() -> Result<()> {
     let workspace_root = cargo_metadata::MetadataCommand::new().exec()?.workspace_root;
 
     // Set the verifier address
+    // Default to PLONK VerifierGateway contract address
+    // Source: https://docs.succinct.xyz/docs/sp1/verification/contract-addresses
     let verifier = env::var("VERIFIER_ADDRESS").unwrap_or_else(|_| {
-        // Default to Groth16 VerifierGateway contract address
-        // Source: https://docs.succinct.xyz/docs/sp1/verification/contract-addresses
-        "0x397A5f7f3dBd538f23DE225B51f532c34448dA9B".to_string()
+        "0xa236e6e31d94b613923d18313f534ce5b6b98ee1".to_string()
     });
 
     let starting_block_number = match env::var("STARTING_BLOCK_NUMBER") {

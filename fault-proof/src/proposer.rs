@@ -268,14 +268,14 @@ where
             SP1ProofWithPublicValues::create_mock_proof(
                 &self.prover.agg_pk,
                 public_values,
-                SP1ProofMode::Groth16,
+                SP1ProofMode::Plonk,
                 SP1_CIRCUIT_VERSION,
             )
         } else {
             self.prover
                 .network_prover
                 .prove(&self.prover.agg_pk, &agg_stdin)
-                .groth16()
+                .plonk()
                 .strategy(FulfillmentStrategy::Hosted)
                 .timeout(Duration::from_secs(self.config.timeout))
                 .run_async()
