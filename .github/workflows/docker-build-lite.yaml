@@ -9,7 +9,7 @@ on:
 jobs:
   build-proposer:
     name: Build OP Succinct Lite Proposer
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-test
     
     env:
       DOCKER_BUILDKIT: 1
@@ -75,7 +75,7 @@ jobs:
 
   build-challenger:
     name: Build OP Succinct Lite Challenger
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-test
       
     env:
       DOCKER_BUILDKIT: 1
